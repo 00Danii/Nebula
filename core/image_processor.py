@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 
 class ImageProcessor:
@@ -26,3 +26,67 @@ class ImageProcessor:
 
     def create_canvas(self, size: tuple[int, int], background: tuple[int, int, int] = (0, 0, 0)) -> Image.Image:
         return Image.new("RGB", size, background)
+
+    def apply_adjustments(self, image: Image.Image, adj: dict) -> Image.Image:
+        img = image.convert("RGB")
+
+        b = adj.get("brightness", 0)
+        if b != 0:
+            val = (b + 100) / 100
+            img = ImageEnhance.Brightness(img).enhance(val)
+
+        c = adj.get("contrast", 0)
+        if c != 0:
+            val = (c + 100) / 100
+            img = ImageEnhance.Contrast(img).enhance(val)
+
+        s = adj.get("saturation", 0)
+        if s != 0:
+            val = (s + 100) / 100
+            img = ImageEnhance.Color(img).enhance(val)
+
+        sh = adj.get("sharpness", 0)
+        if sh != 0:
+            val = (sh + 100) / 100
+            img = ImageEnhance.Sharpness(img).enhance(val)
+
+        h = adj.get("hue", 0)
+        if h != 0:
+            arr = np.array(img, dtype=np.float32)
+            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
+            hsv[:, :, 0] = (hsv[:, :, 0] + h * 0.9) % 180
+            hsv = np.clip(hsv, 0, 255).astype(np.uint8)
+            img = Image.fromarray(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB))
+
+        g = adj.get("gamma", 1.0)
+        if g != 1.0:
+            arr = np.array(img, dtype=np.float32) / 255.0
+            arr = np.power(np.clip(arr, 0, 1), 1.0 / g)
+            img = Image.fromarray(np.clip(arr * 255, 0, 255).astype(np.uint8))
+
+        t = adj.get("temperature", 0)
+        if t != 0:
+            arr = np.array(img, dtype=np.float32)
+            factor = t / 100.0
+            arr[:, :, 0] = np.clip(arr[:, :, 0] * (1 + factor * 0.15), 0, 255)
+            arr[:, :, 2] = np.clip(arr[:, :, 2] * (1 - factor * 0.15), 0, 255)
+            img = Image.fromarray(arr.astype(np.uint8))
+
+        v = adj.get("vibrance", 0)
+        if v != 0:
+            arr = np.array(img, dtype=np.float32)
+            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
+            factor = v / 100.0
+            gray_mask = (hsv[:, :, 1] < 50).astype(np.float32)
+            boost = factor * 30 * (1 - gray_mask)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] + boost, 0, 255)
+            img = Image.fromarray(cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB))
+
+        e = adj.get("exposure", 0)
+        if e != 0:
+            arr = np.array(img, dtype=np.float32)
+            stops = e / 100.0
+            arr = arr * (2 ** stops)
+            img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+
+        return img
