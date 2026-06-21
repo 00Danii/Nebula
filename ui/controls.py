@@ -891,9 +891,20 @@ class ControlsPanel(tk.Frame):
                                        command=self._load_image)
         self._load_btn.pack(fill=tk.X, padx=8, pady=2)
 
-        self._save_btn = ModernButton(fc, text="Guardar Resultado  [Ctrl+S]",
-                                       command=self._save_image)
-        self._save_btn.pack(fill=tk.X, padx=8, pady=2)
+        btn_row = tk.Frame(fc, bg=th.BG_DARK)
+        btn_row.pack(fill=tk.X, padx=8, pady=2)
+
+        self._save_btn = ModernButton(btn_row, text="\u2b07",
+                                       command=self._save_image, padx=8, pady=2)
+        self._save_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+
+        self._clear_btn = ModernButton(btn_row, text="\u2715",
+                                        command=self._clear_image, padx=8, pady=2)
+        self._clear_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+
+        self._reset_all_btn = ModernButton(btn_row, text="\u21ba",
+                                            command=self._clear_all, padx=8, pady=2)
+        self._reset_all_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
 
         adj_sec = Section(parent, "Ajustes de Imagen", expanded=True)
         adj_sec.pack(fill=tk.X, pady=(0, 4))
@@ -1116,8 +1127,28 @@ class ControlsPanel(tk.Frame):
         self._last_result = image
         self._update_status("Renderizado completado")
 
+    def _clear_image(self):
+        self._image_path = None
+        self._last_result = None
+        self._on_render(None)
+        self._update_status("Imagen removida")
+
+    def _clear_all(self):
+        self._reset_adjustments()
+        self._engine.reset_style()
+        self._populate_styles()
+        if self._image_path:
+            self._schedule_render()
+        self._update_status("Todo restablecido")
+
     def load_image(self):
         self._load_image()
 
     def save_image(self):
         self._save_image()
+
+    def clear_image(self):
+        self._clear_image()
+
+    def clear_all(self):
+        self._clear_all()

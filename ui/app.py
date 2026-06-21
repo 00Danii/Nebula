@@ -65,8 +65,9 @@ class App(tk.Tk):
         self.bind("<Control-s>", lambda e: self._controls.save_image())
         self.bind("<Control-q>", lambda e: self._on_close())
 
-    def _do_render(self, image_path: str):
+    def _do_render(self, image_path: str | None):
         if not image_path:
+            self._canvas.clear()
             return
         try:
             self.config(cursor="watch")

@@ -120,3 +120,7 @@ class RenderEngine:
     def set_style(self, style_id: str):
         if self.style_manager.get(style_id):
             self.current_style_id = style_id
+
+    def reset_style(self):
+        self.style_manager.reset_style(self.current_style_id)
+        self.set_style(self.current_style_id)

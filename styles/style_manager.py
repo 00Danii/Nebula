@@ -60,3 +60,8 @@ class StyleManager:
         style = self.get(style_id)
         if style:
             style.update_style_param(param_name, value)
+
+    def reset_style(self, style_id: str):
+        if style_id in self._styles:
+            cls = self._styles[style_id].__class__
+            self._styles[style_id] = cls()
