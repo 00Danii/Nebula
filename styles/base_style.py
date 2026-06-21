@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw
-import numpy as np
 
 
 class BaseStyle(ABC):
@@ -35,3 +34,12 @@ class BaseStyle(ABC):
 
     def get_editable_colors(self) -> dict[str, tuple[int, int, int]]:
         return dict(self._palette)
+
+    def get_style_params(self) -> dict[str, dict]:
+        return {}
+
+    def get_style_param_groups(self) -> list[dict] | None:
+        return None
+
+    def update_style_param(self, name: str, value):
+        pass

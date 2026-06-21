@@ -20,17 +20,28 @@ class SepiaStyle(BaseStyle):
             "grid": (60, 60, 60),
             "accent": (140, 110, 80),
         }
+        self._intensity: float = 1.0
+        self._tone: tuple[int, int, int] = (198, 160, 120)
 
     def get_palette(self) -> dict:
         return self._palette
 
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": int(self._intensity * 100)},
+            "tone": {"label": "Tono sepia", "type": "color", "value": self._tone},
+        }
+
+    def update_style_param(self, name: str, value):
+        if name == "intensity":
+            self._intensity = value / 100.0
+        elif name == "tone":
+            self._tone = value
+
     def process_subject(self, image: Image.Image) -> Image.Image:
         img_array = np.array(image.convert("RGB"), dtype=np.float32)
-        sepia_matrix = np.array([
-            [0.393, 0.769, 0.189],
-            [0.349, 0.686, 0.168],
-            [0.272, 0.534, 0.131]
-        ])
-        result = img_array @ sepia_matrix.T
-        result = np.clip(result, 0, 255).astype(np.uint8)
-        return Image.fromarray(result)
+        gray = np.mean(img_array, axis=2, keepdims=True)
+        tone = np.array(self._tone, dtype=np.float32)
+        sepia = gray * (tone / 255.0)
+        result = img_array * (1 - self._intensity) + sepia * self._intensity
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))

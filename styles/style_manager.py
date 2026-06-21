@@ -2,6 +2,13 @@ from styles.base_style import BaseStyle
 from styles.sepia_style import SepiaStyle
 from styles.crt_style import CRTStyle
 from styles.thermal_style import ThermalStyle
+from styles.noir_style import NoirStyle
+from styles.creative_styles import (
+    CyberpunkStyle, VaporwaveStyle, GoldStyle, IceStyle,
+    PastelStyle, MutedStyle, InvertStyle, NeonStyle, DuotoneStyle,
+    TritoneStyle,
+)
+from styles.custom_style import CustomStyle
 
 
 class StyleManager:
@@ -13,6 +20,18 @@ class StyleManager:
         self.register(SepiaStyle())
         self.register(CRTStyle())
         self.register(ThermalStyle())
+        self.register(NoirStyle())
+        self.register(CyberpunkStyle())
+        self.register(VaporwaveStyle())
+        self.register(GoldStyle())
+        self.register(IceStyle())
+        self.register(PastelStyle())
+        self.register(MutedStyle())
+        self.register(InvertStyle())
+        self.register(NeonStyle())
+        self.register(DuotoneStyle())
+        self.register(TritoneStyle())
+        self.register(CustomStyle())
 
     def register(self, style: BaseStyle):
         self._styles[style.id] = style
@@ -22,7 +41,13 @@ class StyleManager:
 
     def list_styles(self) -> list[dict]:
         return [
-            {"id": sid, "name": s.name, "colors": s.get_editable_colors()}
+            {
+                "id": sid,
+                "name": s.name,
+                "colors": s.get_editable_colors(),
+                "params": s.get_style_params(),
+                "param_groups": s.get_style_param_groups(),
+            }
             for sid, s in self._styles.items()
         ]
 
@@ -30,3 +55,8 @@ class StyleManager:
         style = self.get(style_id)
         if style:
             style.update_color(color_key, value)
+
+    def update_style_param(self, style_id: str, param_name: str, value):
+        style = self.get(style_id)
+        if style:
+            style.update_style_param(param_name, value)

@@ -111,6 +111,9 @@ class RenderEngine:
         style.apply_post_effects(canvas, draw, self.canvas_size)
         return canvas
 
+    def update_style_param(self, param_name: str, value):
+        self.style_manager.update_style_param(self.current_style_id, param_name, value)
+
     def list_styles(self) -> list[dict]:
         return self.style_manager.list_styles()
 
