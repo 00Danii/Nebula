@@ -198,18 +198,19 @@ class CyberpunkStyle(BaseStyle):
                 0.035,
             )
 
+        if self._scanlines > 0:
+            h, w = result.shape[:2]
+            mask = np.ones((h, w, 3), dtype=np.float32)
+            intensity = self._scanlines / 100.0 * 0.3
+            for y in range(0, h, 4):
+                mask[y, :, :] = 1.0 - intensity
+            result *= mask
+
         return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
     def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
         w, h = size
         img = np.array(canvas, dtype=np.float32)
-
-        if self._scanlines > 0:
-            mask = np.ones((h, w, 3), dtype=np.float32)
-            intensity = self._scanlines / 100.0 * 0.3
-            for y in range(0, h, 4):
-                mask[y, :, :] = 1.0 - intensity
-            img *= mask
 
         if self._vignette > 0:
             strength = self._vignette / 100.0

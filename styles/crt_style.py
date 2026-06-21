@@ -85,7 +85,6 @@ class CRTStyle(BaseStyle):
             img_array = np.array(image.convert("RGB"), dtype=np.float32)
             gamma = np.power(img_array / 255.0, 1.0 / 2.2)
             rgb = np.clip(gamma * 255, 0, 255).astype(np.uint8)
-            return Image.fromarray(rgb)
         else:
             img_array = np.array(image.convert("L"), dtype=np.float32)
             normalized = img_array / 255.0
@@ -97,7 +96,18 @@ class CRTStyle(BaseStyle):
                 np.clip(phosphor * pg / 255.0, 0, 1),
                 np.clip(phosphor * pb / 255.0, 0, 1),
             ], axis=2)
-            return Image.fromarray(np.clip(rgb * 255, 0, 255).astype(np.uint8))
+            rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+        if self._scanline_intensity > 0:
+            h, w = rgb.shape[:2]
+            mask = np.ones((h, w, 3), dtype=np.float32)
+            intensity = self._scanline_intensity * 0.5
+            scan_h = self._scan_size
+            step = scan_h + 2
+            for y in range(0, h, step):
+                end = min(y + scan_h, h)
+                mask[y:end, :, :] = 1.0 - intensity
+            rgb = (rgb.astype(np.float32) * mask).astype(np.uint8)
+        return Image.fromarray(rgb)
 
     def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
         w, h = size
@@ -105,9 +115,6 @@ class CRTStyle(BaseStyle):
 
         if self._bloom_intensity > 0:
             img_array = self._apply_bloom(img_array)
-
-        if self._scanline_intensity > 0:
-            img_array = self._apply_scanlines(img_array, w, h)
 
         if self._curvature > 0:
             img_array = self._apply_curvature(img_array, w, h)
@@ -126,16 +133,6 @@ class CRTStyle(BaseStyle):
         ksize = max(3, int(min(img_array.shape[:2]) * 0.03) | 1)
         bloom = cv2.GaussianBlur(bloom, (ksize, ksize), ksize * 0.3)
         return np.clip(img_array + bloom * intensity * 0.5, 0, 255)
-
-    def _apply_scanlines(self, img_array: np.ndarray, w: int, h: int) -> np.ndarray:
-        mask = np.ones((h, w, 3), dtype=np.float32)
-        intensity = self._scanline_intensity * 0.5
-        scan_h = self._scan_size
-        step = scan_h + 2
-        for y in range(0, h, step):
-            end = min(y + scan_h, h)
-            mask[y:end, :, :] = 1.0 - intensity
-        return img_array * mask
 
     def _apply_curvature(self, img_array: np.ndarray, w: int, h: int) -> np.ndarray:
         if self._curvature < 0.5:
