@@ -1,6 +1,26 @@
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
+import cv2
 from styles.base_style import BaseStyle
+
+
+def _glow_bloom(img_array: np.ndarray, threshold_pct: float,
+                color: tuple[int, int, int], intensity: float,
+                radius_pct: float = 0.04) -> np.ndarray:
+    gray = np.mean(img_array, axis=2)
+    thresh = np.percentile(gray, threshold_pct)
+    mask = gray > thresh
+    if not np.any(mask):
+        return img_array
+    bloom = img_array.copy()
+    bloom[~np.stack([mask] * 3, axis=2)] = 0
+    ksize = max(3, int(min(img_array.shape[:2]) * radius_pct) | 1)
+    bloom = cv2.GaussianBlur(bloom, (ksize, ksize), ksize * 0.3)
+    cr, cg, cb = color
+    bloom[:, :, 0] *= cr / 255.0
+    bloom[:, :, 1] *= cg / 255.0
+    bloom[:, :, 2] *= cb / 255.0
+    return np.clip(img_array + bloom * intensity, 0, 255)
 
 
 class TritoneStyle(BaseStyle):
@@ -112,9 +132,54 @@ class CyberpunkStyle(BaseStyle):
             "grid": (80, 0, 40),
             "accent": (0, 255, 255),
         }
+        self._glow_color: tuple[int, int, int] = (255, 0, 128)
+        self._glow_intensity: int = 40
+        self._glow_threshold: int = 30
+        self._scanlines: int = 0
+        self._vignette: int = 40
 
     def get_palette(self) -> dict:
         return self._palette
+
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "glow_color": {"label": "Brillo neon", "type": "color", "value": self._glow_color},
+            "glow_intensity": {"label": "Intensidad brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+            "glow_threshold": {"label": "Umbral brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_threshold},
+            "scanlines": {"label": "Lineas digitales", "type": "slider", "min": 0, "max": 100, "value": self._scanlines},
+            "vignette": {"label": "Vi\u00f1eta", "type": "slider", "min": 0, "max": 100, "value": self._vignette},
+        }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Neon",
+                "params": {
+                    "glow_color": {"label": "Brillo neon", "type": "color", "value": self._glow_color},
+                    "glow_intensity": {"label": "Intensidad brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+                    "glow_threshold": {"label": "Umbral brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_threshold},
+                },
+            },
+            {
+                "title": "Overlay",
+                "params": {
+                    "scanlines": {"label": "Lineas digitales", "type": "slider", "min": 0, "max": 100, "value": self._scanlines},
+                    "vignette": {"label": "Vi\u00f1eta", "type": "slider", "min": 0, "max": 100, "value": self._vignette},
+                },
+            },
+        ]
+
+    def update_style_param(self, name: str, value):
+        if name == "glow_color":
+            self._glow_color = value
+        elif name == "glow_intensity":
+            self._glow_intensity = int(value)
+        elif name == "glow_threshold":
+            self._glow_threshold = int(value)
+        elif name == "scanlines":
+            self._scanlines = int(value)
+        elif name == "vignette":
+            self._vignette = int(value)
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
@@ -122,7 +187,42 @@ class CyberpunkStyle(BaseStyle):
         nr = np.clip(r * 0.8 + g * 0.1 + b * 0.1 + 20, 0, 255)
         ng = np.clip(g * 0.4 + b * 0.6, 0, 255)
         nb = np.clip(b * 1.6, 0, 255)
-        return Image.fromarray(np.stack([nr, ng, nb], axis=2).astype(np.uint8))
+        result = np.stack([nr, ng, nb], axis=2)
+
+        if self._glow_intensity > 0:
+            result = _glow_bloom(
+                result,
+                max(5, 100 - self._glow_threshold),
+                self._glow_color,
+                self._glow_intensity / 100.0 * 0.5,
+                0.035,
+            )
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
+
+    def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
+        w, h = size
+        img = np.array(canvas, dtype=np.float32)
+
+        if self._scanlines > 0:
+            mask = np.ones((h, w, 3), dtype=np.float32)
+            intensity = self._scanlines / 100.0 * 0.3
+            for y in range(0, h, 4):
+                mask[y, :, :] = 1.0 - intensity
+            img *= mask
+
+        if self._vignette > 0:
+            strength = self._vignette / 100.0
+            x = np.arange(w, dtype=np.float32)
+            y = np.arange(h, dtype=np.float32)
+            mx, my = np.meshgrid(x, y)
+            nx = (mx - w / 2.0) / (w / 2.0)
+            ny = (my - h / 2.0) / (h / 2.0)
+            d = np.sqrt(nx * nx + ny * ny)
+            v = np.clip(1.0 - d * strength * 0.7, 0, 1)
+            img *= v[:, :, np.newaxis]
+
+        canvas.paste(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
 
 
 class VaporwaveStyle(BaseStyle):
@@ -142,20 +242,103 @@ class VaporwaveStyle(BaseStyle):
             "grid": (60, 0, 40),
             "accent": (0, 200, 255),
         }
+        self._glow_color: tuple[int, int, int] = (255, 100, 200)
+        self._glow_intensity: int = 50
+        self._pink_strength: int = 70
+        self._cyan_strength: int = 40
+        self._fade: int = 0
+        self._vignette: int = 30
 
     def get_palette(self) -> dict:
         return self._palette
 
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "glow_color": {"label": "Resplandor", "type": "color", "value": self._glow_color},
+            "glow_intensity": {"label": "Intensidad resplandor", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+            "pink_strength": {"label": "Rosa", "type": "slider", "min": 0, "max": 100, "value": self._pink_strength},
+            "cyan_strength": {"label": "Cian", "type": "slider", "min": 0, "max": 100, "value": self._cyan_strength},
+            "fade": {"label": "Desvanecer", "type": "slider", "min": 0, "max": 100, "value": self._fade},
+            "vignette": {"label": "Vi\u00f1eta", "type": "slider", "min": 0, "max": 100, "value": self._vignette},
+        }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Resplandor",
+                "params": {
+                    "glow_color": {"label": "Resplandor", "type": "color", "value": self._glow_color},
+                    "glow_intensity": {"label": "Intensidad resplandor", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+                },
+            },
+            {
+                "title": "Color",
+                "params": {
+                    "pink_strength": {"label": "Rosa", "type": "slider", "min": 0, "max": 100, "value": self._pink_strength},
+                    "cyan_strength": {"label": "Cian", "type": "slider", "min": 0, "max": 100, "value": self._cyan_strength},
+                },
+            },
+            {
+                "title": "Efectos",
+                "params": {
+                    "fade": {"label": "Desvanecer", "type": "slider", "min": 0, "max": 100, "value": self._fade},
+                    "vignette": {"label": "Vi\u00f1eta", "type": "slider", "min": 0, "max": 100, "value": self._vignette},
+                },
+            },
+        ]
+
+    def update_style_param(self, name: str, value):
+        if name == "glow_color":
+            self._glow_color = value
+        elif name == "glow_intensity":
+            self._glow_intensity = int(value)
+        elif name == "pink_strength":
+            self._pink_strength = int(value)
+        elif name == "cyan_strength":
+            self._cyan_strength = int(value)
+        elif name == "fade":
+            self._fade = int(value)
+        elif name == "vignette":
+            self._vignette = int(value)
+
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
         gray = np.mean(arr, axis=2, keepdims=True)
+        pink_factor = self._pink_strength / 100.0
+        cyan_factor = self._cyan_strength / 100.0
         pink = np.clip(gray * 0.9 + 30, 0, 255)
         cyan = np.clip(gray * 0.7 + 40, 0, 255)
         blue = np.clip(gray * 1.1, 0, 255)
-        r = np.clip(pink * 0.7 + arr[:, :, 0:1] * 0.3, 0, 255)
+        r = np.clip(pink * pink_factor + arr[:, :, 0:1] * (1.0 - pink_factor * 0.7), 0, 255)
         g = np.clip(arr[:, :, 1:2] * 0.3 + gray * 0.3, 0, 255)
-        b = np.clip(cyan * 0.4 + blue * 0.3 + arr[:, :, 2:3] * 0.3, 0, 255)
-        return Image.fromarray(np.concatenate([r, g, b], axis=2).astype(np.uint8))
+        b = np.clip(cyan * cyan_factor + blue * 0.3 + arr[:, :, 2:3] * 0.3, 0, 255)
+        result = np.concatenate([r, g, b], axis=2)
+
+        if self._glow_intensity > 0:
+            result = _glow_bloom(
+                result, 70, self._glow_color,
+                self._glow_intensity / 100.0 * 0.4, 0.05,
+            )
+
+        fade = self._fade / 100.0
+        if fade > 0:
+            gray_fade = np.mean(result, axis=2, keepdims=True)
+            result = result * (1.0 - fade * 0.5) + gray_fade * (fade * 0.5)
+            result = np.clip(result + 15 * fade, 0, 255)
+
+        if self._vignette > 0:
+            h, w = result.shape[:2]
+            strength = self._vignette / 100.0
+            x = np.arange(w, dtype=np.float32)
+            y = np.arange(h, dtype=np.float32)
+            mx, my = np.meshgrid(x, y)
+            nx = (mx - w / 2.0) / (w / 2.0)
+            ny = (my - h / 2.0) / (h / 2.0)
+            d = np.sqrt(nx * nx + ny * ny)
+            v = np.clip(1.0 - d * strength * 0.7, 0, 1)
+            result *= v[:, :, np.newaxis]
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class GoldStyle(BaseStyle):
@@ -409,32 +592,88 @@ class NeonStyle(BaseStyle):
             "grid": (50, 0, 40),
             "accent": (50, 255, 200),
         }
-        self._neon_color = (255, 0, 200)
-        self._intensity = 0.7
+        self._neon_color1: tuple[int, int, int] = (255, 0, 200)
+        self._neon_color2: tuple[int, int, int] = (0, 200, 255)
+        self._intensity: int = 70
+        self._glow_intensity: int = 50
+        self._glow_radius: int = 50
+        self._glow_threshold: int = 30
 
     def get_palette(self) -> dict:
         return self._palette
 
     def get_style_params(self) -> dict[str, dict]:
         return {
-            "color": {"label": "Color neon", "type": "color", "value": self._neon_color},
-            "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": int(self._intensity * 100)},
+            "color1": {"label": "Color 1", "type": "color", "value": self._neon_color1},
+            "color2": {"label": "Color 2", "type": "color", "value": self._neon_color2},
+            "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+            "glow_intensity": {"label": "Brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+            "glow_radius": {"label": "Radio brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_radius},
+            "glow_threshold": {"label": "Umbral brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_threshold},
         }
 
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Colores neon",
+                "params": {
+                    "color1": {"label": "Color 1", "type": "color", "value": self._neon_color1},
+                    "color2": {"label": "Color 2", "type": "color", "value": self._neon_color2},
+                    "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+                },
+            },
+            {
+                "title": "Brillo",
+                "params": {
+                    "glow_intensity": {"label": "Brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_intensity},
+                    "glow_radius": {"label": "Radio brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_radius},
+                    "glow_threshold": {"label": "Umbral brillo", "type": "slider", "min": 0, "max": 100, "value": self._glow_threshold},
+                },
+            },
+        ]
+
     def update_style_param(self, name: str, value):
-        if name == "color":
-            self._neon_color = value
+        if name == "color1":
+            self._neon_color1 = value
+        elif name == "color2":
+            self._neon_color2 = value
         elif name == "intensity":
-            self._intensity = value / 100.0
+            self._intensity = int(value)
+        elif name == "glow_intensity":
+            self._glow_intensity = int(value)
+        elif name == "glow_radius":
+            self._glow_radius = int(value)
+        elif name == "glow_threshold":
+            self._glow_threshold = int(value)
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
         gray = np.mean(arr, axis=2, keepdims=True) / 255.0
-        nr, ng, nb = self._neon_color
-        r = np.clip(gray * nr * self._intensity + arr[:, :, 0:1] * (1 - self._intensity), 0, 255)
-        g = np.clip(gray * ng * self._intensity + arr[:, :, 1:2] * (1 - self._intensity), 0, 255)
-        b = np.clip(gray * nb * self._intensity + arr[:, :, 2:3] * (1 - self._intensity), 0, 255)
-        return Image.fromarray(np.concatenate([r, g, b], axis=2).astype(np.uint8))
+        intensity = self._intensity / 100.0
+
+        n1r, n1g, n1b = self._neon_color1
+        n2r, n2g, n2b = self._neon_color2
+
+        blend = gray
+        r = np.clip(blend * (n1r * (1.0 - gray) + n2r * gray) * intensity +
+                    arr[:, :, 0:1] * (1.0 - intensity), 0, 255)
+        g = np.clip(blend * (n1g * (1.0 - gray) + n2g * gray) * intensity +
+                    arr[:, :, 1:2] * (1.0 - intensity), 0, 255)
+        b = np.clip(blend * (n1b * (1.0 - gray) + n2b * gray) * intensity +
+                    arr[:, :, 2:3] * (1.0 - intensity), 0, 255)
+        result = np.concatenate([r, g, b], axis=2)
+
+        if self._glow_intensity > 0:
+            radius_pct = 0.02 + (self._glow_radius / 100.0) * 0.08
+            result = _glow_bloom(
+                result,
+                max(5, 100 - self._glow_threshold),
+                self._neon_color1,
+                self._glow_intensity / 100.0 * 0.6,
+                radius_pct,
+            )
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class DuotoneStyle(BaseStyle):
