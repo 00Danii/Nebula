@@ -53,11 +53,11 @@ class ImageProcessor:
 
         h = adj.get("hue", 0)
         if h != 0:
-            arr = np.array(img, dtype=np.float32)
-            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
-            hsv[:, :, 0] = (hsv[:, :, 0] + h * 0.9) % 180
-            hsv = np.clip(hsv, 0, 255).astype(np.uint8)
-            img = Image.fromarray(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB))
+            arr = np.array(img, dtype=np.uint8)
+            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV).astype(np.int32)
+            shift = int(round(h * 0.9))
+            hsv[:, :, 0] = (hsv[:, :, 0] + shift) % 180
+            img = Image.fromarray(cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB))
 
         g = adj.get("gamma", 1.0)
         if g != 1.0:
@@ -75,8 +75,8 @@ class ImageProcessor:
 
         v = adj.get("vibrance", 0)
         if v != 0:
-            arr = np.array(img, dtype=np.float32)
-            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
+            arr = np.array(img, dtype=np.uint8)
+            hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV).astype(np.float32)
             factor = v / 100.0
             sat = hsv[:, :, 1] / 255.0
             boost = factor * 50 * (1.0 - sat)
