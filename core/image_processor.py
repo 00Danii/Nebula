@@ -12,10 +12,11 @@ class ImageProcessor:
         return Image.fromarray(img_rgb)
 
     def enhance_contrast(self, image: Image.Image, clip_limit: float = 2.0, grid_size: int = 8) -> Image.Image:
-        img_array = np.array(image.convert("L"), dtype=np.uint8)
+        arr = np.array(image.convert("RGB"), dtype=np.uint8)
+        hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV).astype(np.uint8)
         clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(grid_size, grid_size))
-        enhanced = clahe.apply(img_array)
-        return Image.fromarray(enhanced).convert("RGB")
+        hsv[:, :, 2] = clahe.apply(hsv[:, :, 2])
+        return Image.fromarray(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB))
 
     def to_grayscale(self, image: Image.Image) -> Image.Image:
         return image.convert("L").convert("RGB")
@@ -77,8 +78,8 @@ class ImageProcessor:
             arr = np.array(img, dtype=np.float32)
             hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
             factor = v / 100.0
-            gray_mask = (hsv[:, :, 1] < 50).astype(np.float32)
-            boost = factor * 30 * (1 - gray_mask)
+            sat = hsv[:, :, 1] / 255.0
+            boost = factor * 50 * (1.0 - sat)
             hsv[:, :, 1] = np.clip(hsv[:, :, 1] + boost, 0, 255)
             img = Image.fromarray(cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB))
 
