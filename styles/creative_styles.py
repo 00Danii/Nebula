@@ -308,35 +308,87 @@ class InvertStyle(BaseStyle):
             "grid": (100, 100, 100),
             "accent": (255, 100, 100),
         }
-        self._mode = "completo"
+        self._mode: str = "completo"
+        self._threshold: int = 50
+        self._blend: int = 100
+        self._tint_color: tuple[int, int, int] = (255, 255, 255)
 
     def get_palette(self) -> dict:
         return self._palette
 
     def get_style_params(self) -> dict[str, dict]:
         return {
-            "mode": {"label": "Modo", "type": "choice", "options": ["completo", "luminancia", "selectivo"], "value": self._mode},
+            "mode": {"label": "Modo", "type": "choice", "options": ["completo", "luminancia", "selectivo", "solarizado"], "value": self._mode},
+            "threshold": {"label": "Umbral", "type": "slider", "min": 0, "max": 100, "value": self._threshold},
+            "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
+            "tint": {"label": "Tinte", "type": "color", "value": self._tint_color},
         }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Modo",
+                "params": {
+                    "mode": {"label": "Modo", "type": "choice", "options": ["completo", "luminancia", "selectivo", "solarizado"], "value": self._mode},
+                    "threshold": {"label": "Umbral", "type": "slider", "min": 0, "max": 100, "value": self._threshold},
+                },
+            },
+            {
+                "title": "Ajustes",
+                "params": {
+                    "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
+                    "tint": {"label": "Tinte", "type": "color", "value": self._tint_color},
+                },
+            },
+        ]
 
     def update_style_param(self, name: str, value):
         if name == "mode":
             self._mode = value
+        elif name == "threshold":
+            self._threshold = int(value)
+        elif name == "blend":
+            self._blend = int(value)
+        elif name == "tint":
+            self._tint_color = value
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
+
         if self._mode == "completo":
-            result = 255 - arr
+            result = 255.0 - arr
         elif self._mode == "luminancia":
             gray = np.mean(arr, axis=2, keepdims=True)
-            inv_gray = 255 - gray
+            inv_gray = 255.0 - gray
             result = arr * 0.3 + inv_gray * 0.7
-        else:
+        elif self._mode == "selectivo":
             gray = np.mean(arr, axis=2)
-            mask = gray > 128
+            t = self._threshold / 100.0 * 255.0
+            mask = gray > t
             result = arr.copy()
             for c in range(3):
                 channel = result[:, :, c]
-                channel[mask] = 255 - channel[mask]
+                channel[mask] = 255.0 - channel[mask]
+        else:
+            t = self._threshold / 100.0
+            gray = np.mean(arr, axis=2, keepdims=True) / 255.0
+            invert_amount = 1.0 - np.abs(gray - t) * 2.0
+            invert_amount = np.clip(invert_amount, 0, 1)
+            result = arr * (1.0 - invert_amount) + (255.0 - arr) * invert_amount
+
+        blend = self._blend / 100.0
+        if blend < 1.0:
+            result = result * blend + arr * (1.0 - blend)
+
+        tr, tg, tb = self._tint_color
+        if (tr, tg, tb) != (255, 255, 255):
+            gray_res = np.mean(result, axis=2, keepdims=True) / 255.0
+            result = np.concatenate([
+                gray_res * tr,
+                gray_res * tg,
+                gray_res * tb,
+            ], axis=2)
+
         return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
