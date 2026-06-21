@@ -358,17 +358,101 @@ class GoldStyle(BaseStyle):
             "grid": (80, 60, 0),
             "accent": (255, 180, 50),
         }
+        self._intensity: int = 70
+        self._tone: int = 50
+        self._sheen: int = 30
+        self._sparkle: int = 0
 
     def get_palette(self) -> dict:
         return self._palette
 
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+            "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+            "sheen": {"label": "Brillo metalico", "type": "slider", "min": 0, "max": 100, "value": self._sheen},
+            "sparkle": {"label": "Destellos", "type": "slider", "min": 0, "max": 100, "value": self._sparkle},
+        }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Oro",
+                "params": {
+                    "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+                    "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+                },
+            },
+            {
+                "title": "Efectos metalicos",
+                "params": {
+                    "sheen": {"label": "Brillo metalico", "type": "slider", "min": 0, "max": 100, "value": self._sheen},
+                    "sparkle": {"label": "Destellos", "type": "slider", "min": 0, "max": 100, "value": self._sparkle},
+                },
+            },
+        ]
+
+    def update_style_param(self, name: str, value):
+        if name == "intensity":
+            self._intensity = int(value)
+        elif name == "tone":
+            self._tone = int(value)
+        elif name == "sheen":
+            self._sheen = int(value)
+        elif name == "sparkle":
+            self._sparkle = int(value)
+
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
         gray = np.mean(arr, axis=2, keepdims=True)
-        gold_r = np.clip(gray * 1.1 + 20, 0, 255)
-        gold_g = np.clip(gray * 0.85 + 10, 0, 255)
-        gold_b = np.clip(gray * 0.4, 0, 255)
-        return Image.fromarray(np.concatenate([gold_r, gold_g, gold_b], axis=2).astype(np.uint8))
+        intensity = self._intensity / 100.0
+        tone = self._tone / 100.0
+        sheen = self._sheen / 100.0
+
+        warm_r, warm_g, warm_b = 255, 215, 0
+        cool_r, cool_g, cool_b = 192, 192, 180
+        tr = warm_r * tone + cool_r * (1.0 - tone)
+        tg = warm_g * tone + cool_g * (1.0 - tone)
+        tb = warm_b * tone + cool_b * (1.0 - tone)
+
+        gold_r = gray * tr / 255.0 + 20
+        gold_g = gray * tg / 255.0 + 10
+        gold_b = gray * tb / 255.0
+
+        result = np.concatenate([
+            arr[:, :, 0:1] * (1.0 - intensity) + gold_r * intensity,
+            arr[:, :, 1:2] * (1.0 - intensity) + gold_g * intensity,
+            arr[:, :, 2:3] * (1.0 - intensity) + gold_b * intensity,
+        ], axis=2)
+        result = np.clip(result, 0, 255)
+
+        if sheen > 0:
+            h, w = result.shape[:2]
+            seed = np.random.randint(0, 1000)
+            rng = np.random.RandomState(seed)
+            noise = rng.randn(h, w, 1).astype(np.float32) * 0.15
+            sheen_map = np.clip(noise + gray / 255.0 * 0.5 + 0.3, 0, 1)
+            sheen_map = np.clip((sheen_map - 0.5) * 2.0, 0, 1) * sheen
+            result[:, :, 0] += sheen_map[:, :, 0] * 40
+            result[:, :, 1] += sheen_map[:, :, 0] * 30
+            result[:, :, 2] += sheen_map[:, :, 0] * 10
+            result = np.clip(result, 0, 255)
+
+        if self._sparkle > 0:
+            h, w = result.shape[:2]
+            sparkle_strength = self._sparkle / 100.0
+            seed = np.random.randint(0, 1000)
+            rng = np.random.RandomState(seed)
+            sparkle_map = rng.random((h, w))
+            threshold = 1.0 - sparkle_strength * 0.02
+            mask = sparkle_map > threshold
+            brightness = (sparkle_map[mask] - threshold) / (1.0 - threshold)
+            for c in range(3):
+                result[:, :, c][mask] = np.clip(
+                    result[:, :, c][mask] + brightness * 120, 0, 255
+                )
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class IceStyle(BaseStyle):
@@ -388,17 +472,97 @@ class IceStyle(BaseStyle):
             "grid": (40, 80, 100),
             "accent": (100, 200, 255),
         }
+        self._intensity: int = 70
+        self._tone: int = 50
+        self._frost: int = 0
+        self._glint: int = 0
 
     def get_palette(self) -> dict:
         return self._palette
 
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+            "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+            "frost": {"label": "Escarcha", "type": "slider", "min": 0, "max": 100, "value": self._frost},
+            "glint": {"label": "Brillo hielo", "type": "slider", "min": 0, "max": 100, "value": self._glint},
+        }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Hielo",
+                "params": {
+                    "intensity": {"label": "Intensidad", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+                    "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+                },
+            },
+            {
+                "title": "Texturas",
+                "params": {
+                    "frost": {"label": "Escarcha", "type": "slider", "min": 0, "max": 100, "value": self._frost},
+                    "glint": {"label": "Brillo hielo", "type": "slider", "min": 0, "max": 100, "value": self._glint},
+                },
+            },
+        ]
+
+    def update_style_param(self, name: str, value):
+        if name == "intensity":
+            self._intensity = int(value)
+        elif name == "tone":
+            self._tone = int(value)
+        elif name == "frost":
+            self._frost = int(value)
+        elif name == "glint":
+            self._glint = int(value)
+
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
         gray = np.mean(arr, axis=2, keepdims=True)
-        r = np.clip(gray * 0.7 - 10, 0, 255)
-        g = np.clip(gray * 0.9 + 10, 0, 255)
-        b = np.clip(gray * 1.2 + 20, 0, 255)
-        return Image.fromarray(np.concatenate([r, g, b], axis=2).astype(np.uint8))
+        intensity = self._intensity / 100.0
+        tone = self._tone / 100.0
+
+        cyan_r, cyan_g, cyan_b = 0, 200, 255
+        purple_r, purple_g, purple_b = 160, 140, 255
+        tr = cyan_r * (1.0 - tone) + purple_r * tone
+        tg = cyan_g * (1.0 - tone) + purple_g * tone
+        tb = cyan_b * (1.0 - tone) + purple_b * tone
+
+        ice_r = gray * tr / 255.0 - 10
+        ice_g = gray * tg / 255.0 + 10
+        ice_b = gray * tb / 255.0 + 20
+
+        result = np.concatenate([
+            arr[:, :, 0:1] * (1.0 - intensity) + ice_r * intensity,
+            arr[:, :, 1:2] * (1.0 - intensity) + ice_g * intensity,
+            arr[:, :, 2:3] * (1.0 - intensity) + ice_b * intensity,
+        ], axis=2)
+        result = np.clip(result, 0, 255)
+
+        if self._frost > 0:
+            h, w = result.shape[:2]
+            seed = np.random.randint(0, 1000)
+            rng = np.random.RandomState(seed)
+            frost_noise = rng.randn(h, w, 1).astype(np.float32)
+            frost_noise = np.clip(frost_noise * self._frost * 0.008, 0, 1)
+            result[:, :, 0] = np.clip(result[:, :, 0] + frost_noise[:, :, 0] * 60, 0, 255)
+            result[:, :, 1] = np.clip(result[:, :, 1] + frost_noise[:, :, 0] * 40, 0, 255)
+            result[:, :, 2] = np.clip(result[:, :, 2] + frost_noise[:, :, 0] * 20, 0, 255)
+
+        if self._glint > 0:
+            h, w = result.shape[:2]
+            seed = np.random.randint(0, 1000)
+            rng = np.random.RandomState(seed)
+            glint_map = rng.random((h, w))
+            threshold = 1.0 - self._glint / 100.0 * 0.015
+            mask = glint_map > threshold
+            if np.any(mask):
+                val = (glint_map[mask] - threshold) / (1.0 - threshold)
+                result[:, :, 0][mask] = np.clip(result[:, :, 0][mask] + val * 100, 0, 255)
+                result[:, :, 1][mask] = np.clip(result[:, :, 1][mask] + val * 120, 0, 255)
+                result[:, :, 2][mask] = np.clip(result[:, :, 2][mask] + val * 150, 0, 255)
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class PastelStyle(BaseStyle):
@@ -418,21 +582,85 @@ class PastelStyle(BaseStyle):
             "grid": (80, 70, 75),
             "accent": (200, 180, 190),
         }
+        self._intensity: int = 60
+        self._tone: int = 50
+        self._saturation: int = 50
+        self._glow: int = 0
 
     def get_palette(self) -> dict:
         return self._palette
 
+    def get_style_params(self) -> dict[str, dict]:
+        return {
+            "intensity": {"label": "Intensidad pastel", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+            "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+            "saturation": {"label": "Saturacion", "type": "slider", "min": 0, "max": 100, "value": self._saturation},
+            "glow": {"label": "Resplandor suave", "type": "slider", "min": 0, "max": 100, "value": self._glow},
+        }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Pastel",
+                "params": {
+                    "intensity": {"label": "Intensidad pastel", "type": "slider", "min": 0, "max": 100, "value": self._intensity},
+                    "tone": {"label": "Tono", "type": "slider", "min": 0, "max": 100, "value": self._tone},
+                    "saturation": {"label": "Saturacion", "type": "slider", "min": 0, "max": 100, "value": self._saturation},
+                },
+            },
+            {
+                "title": "Brillo",
+                "params": {
+                    "glow": {"label": "Resplandor suave", "type": "slider", "min": 0, "max": 100, "value": self._glow},
+                },
+            },
+        ]
+
+    def update_style_param(self, name: str, value):
+        if name == "intensity":
+            self._intensity = int(value)
+        elif name == "tone":
+            self._tone = int(value)
+        elif name == "saturation":
+            self._saturation = int(value)
+        elif name == "glow":
+            self._glow = int(value)
+
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
         gray = np.mean(arr, axis=2, keepdims=True)
-        blend = 0.6
-        pastel_r = np.clip(gray * 0.9 + 20, 0, 255)
-        pastel_g = np.clip(gray * 0.85 + 25, 0, 255)
-        pastel_b = np.clip(gray * 0.95 + 15, 0, 255)
-        r = np.clip(arr[:, :, 0:1] * (1 - blend) + pastel_r * blend, 0, 255)
-        g = np.clip(arr[:, :, 1:2] * (1 - blend) + pastel_g * blend, 0, 255)
-        b = np.clip(arr[:, :, 2:3] * (1 - blend) + pastel_b * blend, 0, 255)
-        return Image.fromarray(np.concatenate([r, g, b], axis=2).astype(np.uint8))
+        intensity = self._intensity / 100.0
+        tone = self._tone / 100.0
+        sat = self._saturation / 100.0
+
+        warm_r, warm_g, warm_b = 255, 200, 200
+        cool_r, cool_g, cool_b = 200, 210, 255
+        pr = warm_r * (1.0 - tone) + cool_r * tone
+        pg = warm_g * (1.0 - tone) + cool_g * tone
+        pb = warm_b * (1.0 - tone) + cool_b * tone
+
+        pastel_r = gray * pr / 255.0 + 20
+        pastel_g = gray * pg / 255.0 + 25
+        pastel_b = gray * pb / 255.0 + 15
+
+        result = np.concatenate([
+            arr[:, :, 0:1] * (1.0 - intensity) + pastel_r * intensity,
+            arr[:, :, 1:2] * (1.0 - intensity) + pastel_g * intensity,
+            arr[:, :, 2:3] * (1.0 - intensity) + pastel_b * intensity,
+        ], axis=2)
+        result = np.clip(result, 0, 255)
+
+        if sat < 1.0:
+            gray_res = np.mean(result, axis=2, keepdims=True)
+            result = result * sat + gray_res * (1.0 - sat)
+
+        if self._glow > 0:
+            glow_intensity = self._glow / 100.0 * 0.3
+            ksize = max(3, int(min(result.shape[:2]) * 0.05) | 1)
+            blurred = cv2.GaussianBlur(result, (ksize, ksize), ksize * 0.3)
+            result = np.clip(result + blurred * glow_intensity, 0, 255)
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class MutedStyle(BaseStyle):
@@ -452,26 +680,78 @@ class MutedStyle(BaseStyle):
             "grid": (60, 55, 50),
             "accent": (130, 120, 110),
         }
-        self._fade = 0.5
+        self._fade: int = 50
+        self._contrast: int = 0
+        self._warmth: int = 50
+        self._grain: int = 0
 
     def get_palette(self) -> dict:
         return self._palette
 
     def get_style_params(self) -> dict[str, dict]:
         return {
-            "fade": {"label": "Desvanecer", "type": "slider", "min": 0, "max": 100, "value": int(self._fade * 100)},
+            "fade": {"label": "Desvanecer", "type": "slider", "min": 0, "max": 100, "value": self._fade},
+            "contrast": {"label": "Contraste", "type": "slider", "min": 0, "max": 100, "value": self._contrast},
+            "warmth": {"label": "Calidez", "type": "slider", "min": 0, "max": 100, "value": self._warmth},
+            "grain": {"label": "Grano", "type": "slider", "min": 0, "max": 100, "value": self._grain},
         }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Tonos",
+                "params": {
+                    "fade": {"label": "Desvanecer", "type": "slider", "min": 0, "max": 100, "value": self._fade},
+                    "contrast": {"label": "Contraste", "type": "slider", "min": 0, "max": 100, "value": self._contrast},
+                    "warmth": {"label": "Calidez", "type": "slider", "min": 0, "max": 100, "value": self._warmth},
+                },
+            },
+            {
+                "title": "Textura",
+                "params": {
+                    "grain": {"label": "Grano", "type": "slider", "min": 0, "max": 100, "value": self._grain},
+                },
+            },
+        ]
 
     def update_style_param(self, name: str, value):
         if name == "fade":
-            self._fade = value / 100.0
+            self._fade = int(value)
+        elif name == "contrast":
+            self._contrast = int(value)
+        elif name == "warmth":
+            self._warmth = int(value)
+        elif name == "grain":
+            self._grain = int(value)
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         arr = np.array(image.convert("RGB"), dtype=np.float32)
+        fade = self._fade / 100.0
+        warmth = self._warmth / 100.0
+
         gray = np.mean(arr, axis=2, keepdims=True)
-        faded = arr * (1 - self._fade * 0.6) + gray * (self._fade * 0.6)
-        faded = np.clip(faded + 20 * self._fade, 0, 255)
-        return Image.fromarray(faded.astype(np.uint8))
+        result = arr * (1.0 - fade * 0.6) + gray * (fade * 0.6)
+        result = np.clip(result + 20 * fade, 0, 255)
+
+        if self._contrast > 0:
+            contrast = self._contrast / 100.0 * 0.5
+            gray_c = np.mean(result, axis=2, keepdims=True)
+            result = result * (1.0 + contrast) - 128 * contrast
+            result = np.clip(result, 0, 255)
+
+        wr = warmth * 1.0 + (1.0 - warmth) * 0.9
+        wb = warmth * 0.9 + (1.0 - warmth) * 1.0
+        result[:, :, 0] = np.clip(result[:, :, 0] * wr, 0, 255)
+        result[:, :, 2] = np.clip(result[:, :, 2] * wb, 0, 255)
+
+        if self._grain > 0:
+            h, w = result.shape[:2]
+            seed = np.random.randint(0, 1000)
+            rng = np.random.RandomState(seed)
+            noise = rng.randn(h, w, 1).astype(np.float32) * self._grain * 0.3
+            result = np.clip(result + noise, 0, 255)
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class InvertStyle(BaseStyle):
