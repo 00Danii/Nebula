@@ -22,7 +22,9 @@ class CRTStyle(BaseStyle):
             "accent": (0, 255, 65),
         }
         self._scanline_intensity: float = 0.15
+        self._scan_size: int = 1
         self._phosphor_color: tuple[int, int, int] = (0, 255, 0)
+        self._color_mode: str = "No"
         self._curvature: float = 0.0
         self._bloom_intensity: float = 0.0
         self._bloom_threshold: float = 0.7
@@ -33,9 +35,11 @@ class CRTStyle(BaseStyle):
     def get_style_params(self) -> dict[str, dict]:
         return {
             "scan_intensity": {"label": "Lineas de barrido", "type": "slider", "min": 0, "max": 100, "value": int(self._scanline_intensity * 100)},
+            "scan_size": {"label": "Grosor barrido", "type": "slider", "min": 1, "max": 6, "value": self._scan_size},
             "curvature": {"label": "Curvatura", "type": "slider", "min": 0, "max": 100, "value": int(self._curvature)},
             "bloom_intensity": {"label": "Bloom", "type": "slider", "min": 0, "max": 100, "value": int(self._bloom_intensity)},
             "bloom_threshold": {"label": "Umbral bloom", "type": "slider", "min": 0, "max": 100, "value": int(self._bloom_threshold * 100)},
+            "color_mode": {"label": "Color original", "type": "toggle", "value": self._color_mode},
             "phosphor": {"label": "Color de fosforo", "type": "color", "value": self._phosphor_color},
         }
 
@@ -45,6 +49,7 @@ class CRTStyle(BaseStyle):
                 "title": "Efectos CRT",
                 "params": {
                     "scan_intensity": {"label": "Lineas de barrido", "type": "slider", "min": 0, "max": 100, "value": int(self._scanline_intensity * 100)},
+                    "scan_size": {"label": "Grosor barrido", "type": "slider", "min": 1, "max": 6, "value": self._scan_size},
                     "curvature": {"label": "Curvatura", "type": "slider", "min": 0, "max": 100, "value": int(self._curvature)},
                     "bloom_intensity": {"label": "Bloom", "type": "slider", "min": 0, "max": 100, "value": int(self._bloom_intensity)},
                     "bloom_threshold": {"label": "Umbral bloom", "type": "slider", "min": 0, "max": 100, "value": int(self._bloom_threshold * 100)},
@@ -53,6 +58,7 @@ class CRTStyle(BaseStyle):
             {
                 "title": "Color",
                 "params": {
+                    "color_mode": {"label": "Color original", "type": "toggle", "value": self._color_mode},
                     "phosphor": {"label": "Color de fosforo", "type": "color", "value": self._phosphor_color},
                 },
             },
@@ -61,27 +67,37 @@ class CRTStyle(BaseStyle):
     def update_style_param(self, name: str, value):
         if name == "scan_intensity":
             self._scanline_intensity = value / 100.0
+        elif name == "scan_size":
+            self._scan_size = int(value)
         elif name == "curvature":
             self._curvature = float(value)
         elif name == "bloom_intensity":
             self._bloom_intensity = float(value)
         elif name == "bloom_threshold":
             self._bloom_threshold = value / 100.0
+        elif name == "color_mode":
+            self._color_mode = value
         elif name == "phosphor":
             self._phosphor_color = value
 
     def process_subject(self, image: Image.Image) -> Image.Image:
-        img_array = np.array(image.convert("L"), dtype=np.float32)
-        normalized = img_array / 255.0
-        phosphor = np.clip(normalized * 0.9 + 0.05, 0, 1)
-        phosphor = np.power(phosphor, 1.0 / 2.2)
-        pr, pg, pb = self._phosphor_color
-        rgb = np.stack([
-            np.clip(phosphor * pr / 255.0, 0, 1),
-            np.clip(phosphor * pg / 255.0, 0, 1),
-            np.clip(phosphor * pb / 255.0, 0, 1),
-        ], axis=2)
-        return Image.fromarray(np.clip(rgb * 255, 0, 255).astype(np.uint8))
+        if self._color_mode == "Si":
+            img_array = np.array(image.convert("RGB"), dtype=np.float32)
+            gamma = np.power(img_array / 255.0, 1.0 / 2.2)
+            rgb = np.clip(gamma * 255, 0, 255).astype(np.uint8)
+            return Image.fromarray(rgb)
+        else:
+            img_array = np.array(image.convert("L"), dtype=np.float32)
+            normalized = img_array / 255.0
+            phosphor = np.clip(normalized * 0.9 + 0.05, 0, 1)
+            phosphor = np.power(phosphor, 1.0 / 2.2)
+            pr, pg, pb = self._phosphor_color
+            rgb = np.stack([
+                np.clip(phosphor * pr / 255.0, 0, 1),
+                np.clip(phosphor * pg / 255.0, 0, 1),
+                np.clip(phosphor * pb / 255.0, 0, 1),
+            ], axis=2)
+            return Image.fromarray(np.clip(rgb * 255, 0, 255).astype(np.uint8))
 
     def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
         w, h = size
@@ -114,8 +130,11 @@ class CRTStyle(BaseStyle):
     def _apply_scanlines(self, img_array: np.ndarray, w: int, h: int) -> np.ndarray:
         mask = np.ones((h, w, 3), dtype=np.float32)
         intensity = self._scanline_intensity * 0.5
-        for y in range(0, h, 3):
-            mask[y, :, :] = 1.0 - intensity
+        scan_h = self._scan_size
+        step = scan_h + 2
+        for y in range(0, h, step):
+            end = min(y + scan_h, h)
+            mask[y:end, :, :] = 1.0 - intensity
         return img_array * mask
 
     def _apply_curvature(self, img_array: np.ndarray, w: int, h: int) -> np.ndarray:

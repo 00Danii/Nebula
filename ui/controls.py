@@ -612,6 +612,63 @@ class StyleParamChoice(tk.Frame):
         combobox.pack(side=tk.LEFT, padx=4, fill=tk.X, expand=True)
 
 
+class StyleParamToggle(tk.Frame):
+    def __init__(self, parent, label: str, initial: str = "No",
+                 on_change=None, **kwargs):
+        super().__init__(parent, bg=th.BG_DARK, **kwargs)
+        self._on_change = on_change
+        self._state = (initial == "Si")
+
+        lbl = tk.Label(self, text=label, font=(th.FONT_FAMILY, 9),
+                       bg=th.BG_DARK, fg=th.FG, anchor="w", width=14)
+        lbl.pack(side=tk.LEFT, padx=8)
+
+        self._btn_frame = tk.Frame(self, bg=self._get_bg(),
+                                    bd=1, relief=tk.FLAT, cursor="hand2")
+        self._btn_label = tk.Label(self._btn_frame, text="Si" if self._state else "No",
+                                    font=(th.FONT_FAMILY, 9, "bold"),
+                                    bg=self._get_bg(), fg=th.FG_BRIGHT,
+                                    padx=14, pady=2)
+        self._btn_label.pack()
+        self._btn_frame.pack(side=tk.LEFT, padx=4)
+
+        self._btn_frame.bind("<Button-1>", self._toggle)
+        self._btn_label.bind("<Button-1>", self._toggle)
+        self._btn_frame.bind("<Enter>", self._on_enter)
+        self._btn_frame.bind("<Leave>", self._on_leave)
+        self._btn_label.bind("<Enter>", self._on_enter)
+        self._btn_label.bind("<Leave>", self._on_leave)
+
+    def _get_bg(self):
+        return "#444444"
+
+    def _get_hover_bg(self):
+        return "#555555"
+
+    def _update_appearance(self):
+        bg = self._get_bg()
+        self._btn_frame.configure(bg=bg)
+        self._btn_label.configure(bg=bg, text="Si" if self._state else "No")
+
+    def _toggle(self, event=None):
+        self._state = not self._state
+        self._update_appearance()
+        if self._on_change:
+            self._on_change("Si" if self._state else "No")
+
+    def _on_enter(self, event):
+        bg = self._get_hover_bg()
+        self._btn_frame.configure(bg=bg)
+        self._btn_label.configure(bg=bg)
+
+    def _on_leave(self, event):
+        self._update_appearance()
+
+    def set_value(self, value: str):
+        self._state = (value == "Si")
+        self._update_appearance()
+
+
 class DarkCombobox(tk.Frame):
     def __init__(self, parent, values=None, initial="", width=25, on_select=None, **kwargs):
         super().__init__(parent, bg=th.BG_DARK, **kwargs)
@@ -1070,6 +1127,14 @@ class ControlsPanel(tk.Frame):
                 self._params_container, plabel,
                 pdef.get("options", []),
                 pdef.get("value", ""),
+                on_change=lambda v, n=pname: self._on_style_param_changed(n, v)
+            )
+            w.pack(fill=tk.X, pady=1)
+            self._style_param_widgets[pname] = w
+        elif ptype == "toggle":
+            w = StyleParamToggle(
+                self._params_container, plabel,
+                initial=pdef.get("value", "No"),
                 on_change=lambda v, n=pname: self._on_style_param_changed(n, v)
             )
             w.pack(fill=tk.X, pady=1)
