@@ -23,6 +23,8 @@ class TritoneStyle(BaseStyle):
         self._shadow_color = (20, 10, 50)
         self._midtone_color = (120, 60, 180)
         self._highlight_color = (255, 220, 180)
+        self._balance: int = 50
+        self._blend: int = 100
 
     def get_palette(self) -> dict:
         return self._palette
@@ -32,7 +34,28 @@ class TritoneStyle(BaseStyle):
             "shadow": {"label": "Sombra", "type": "color", "value": self._shadow_color},
             "midtone": {"label": "Medio", "type": "color", "value": self._midtone_color},
             "highlight": {"label": "Luz", "type": "color", "value": self._highlight_color},
+            "balance": {"label": "Balance", "type": "slider", "min": 0, "max": 100, "value": self._balance},
+            "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
         }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Colores",
+                "params": {
+                    "shadow": {"label": "Sombra", "type": "color", "value": self._shadow_color},
+                    "midtone": {"label": "Medio", "type": "color", "value": self._midtone_color},
+                    "highlight": {"label": "Luz", "type": "color", "value": self._highlight_color},
+                },
+            },
+            {
+                "title": "Ajustes",
+                "params": {
+                    "balance": {"label": "Balance", "type": "slider", "min": 0, "max": 100, "value": self._balance},
+                    "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
+                },
+            },
+        ]
 
     def update_style_param(self, name: str, value):
         if name == "shadow":
@@ -41,20 +64,35 @@ class TritoneStyle(BaseStyle):
             self._midtone_color = value
         elif name == "highlight":
             self._highlight_color = value
+        elif name == "balance":
+            self._balance = int(value)
+        elif name == "blend":
+            self._blend = int(value)
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         gray = np.array(image.convert("L"), dtype=np.float32) / 255.0
+        original = gray.copy()
         sr, sg, sb = self._shadow_color
         mr, mg, mb = self._midtone_color
         hr, hg, hb = self._highlight_color
 
-        mask_mid = gray <= 0.5
-        t = gray * 2.0
-        r = np.where(mask_mid, (1 - t) * sr + t * mr, (2 - t) * mr + (t - 1) * hr)
-        g = np.where(mask_mid, (1 - t) * sg + t * mg, (2 - t) * mg + (t - 1) * hg)
-        b = np.where(mask_mid, (1 - t) * sb + t * mb, (2 - t) * mb + (t - 1) * hb)
+        mid = max(0.05, min(0.95, self._balance / 100.0))
+        mask_shadow = gray <= mid
+        t1 = gray / mid
+        t2 = (gray - mid) / (1.0 - mid)
 
-        return Image.fromarray(np.stack([r, g, b], axis=2).astype(np.uint8))
+        r = np.where(mask_shadow, (1 - t1) * sr + t1 * mr, (1 - t2) * mr + t2 * hr)
+        g = np.where(mask_shadow, (1 - t1) * sg + t1 * mg, (1 - t2) * mg + t2 * hg)
+        b = np.where(mask_shadow, (1 - t1) * sb + t1 * mb, (1 - t2) * mb + t2 * hb)
+
+        result = np.stack([r, g, b], axis=2)
+
+        blend = self._blend / 100.0
+        if blend < 1.0:
+            gray3 = np.stack([original * 255] * 3, axis=2)
+            result = result * blend + gray3 * (1.0 - blend)
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
 
 
 class CyberpunkStyle(BaseStyle):
@@ -366,6 +404,8 @@ class DuotoneStyle(BaseStyle):
         }
         self._shadow_color = (20, 10, 50)
         self._highlight_color = (255, 200, 100)
+        self._balance: int = 50
+        self._blend: int = 100
 
     def get_palette(self) -> dict:
         return self._palette
@@ -374,19 +414,56 @@ class DuotoneStyle(BaseStyle):
         return {
             "shadow": {"label": "Sombra", "type": "color", "value": self._shadow_color},
             "highlight": {"label": "Luz", "type": "color", "value": self._highlight_color},
+            "balance": {"label": "Balance", "type": "slider", "min": 0, "max": 100, "value": self._balance},
+            "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
         }
+
+    def get_style_param_groups(self) -> list[dict]:
+        return [
+            {
+                "title": "Colores",
+                "params": {
+                    "shadow": {"label": "Sombra", "type": "color", "value": self._shadow_color},
+                    "highlight": {"label": "Luz", "type": "color", "value": self._highlight_color},
+                },
+            },
+            {
+                "title": "Ajustes",
+                "params": {
+                    "balance": {"label": "Balance", "type": "slider", "min": 0, "max": 100, "value": self._balance},
+                    "blend": {"label": "Mezcla", "type": "slider", "min": 0, "max": 100, "value": self._blend},
+                },
+            },
+        ]
 
     def update_style_param(self, name: str, value):
         if name == "shadow":
             self._shadow_color = value
         elif name == "highlight":
             self._highlight_color = value
+        elif name == "balance":
+            self._balance = int(value)
+        elif name == "blend":
+            self._blend = int(value)
 
     def process_subject(self, image: Image.Image) -> Image.Image:
         gray = np.array(image.convert("L"), dtype=np.float32) / 255.0
+        original = gray.copy()
         sr, sg, sb = self._shadow_color
         hr, hg, hb = self._highlight_color
-        r = np.clip((1 - gray) * sr + gray * hr, 0, 255)
-        g = np.clip((1 - gray) * sg + gray * hg, 0, 255)
-        b = np.clip((1 - gray) * sb + gray * hb, 0, 255)
-        return Image.fromarray(np.stack([r, g, b], axis=2).astype(np.uint8))
+
+        exp = max(0.1, (100 - self._balance) / 50.0)
+        mapped = np.power(np.clip(gray, 0.001, 1.0), exp)
+
+        r = (1 - mapped) * sr + mapped * hr
+        g = (1 - mapped) * sg + mapped * hg
+        b = (1 - mapped) * sb + mapped * hb
+
+        result = np.stack([r, g, b], axis=2)
+
+        blend = self._blend / 100.0
+        if blend < 1.0:
+            gray3 = np.stack([original * 255] * 3, axis=2)
+            result = result * blend + gray3 * (1.0 - blend)
+
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
