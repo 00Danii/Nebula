@@ -206,13 +206,8 @@ class CyberpunkStyle(BaseStyle):
                 mask[y, :, :] = 1.0 - intensity
             result *= mask
 
-        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
-
-    def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
-        w, h = size
-        img = np.array(canvas, dtype=np.float32)
-
         if self._vignette > 0:
+            h, w = result.shape[:2]
             strength = self._vignette / 100.0
             x = np.arange(w, dtype=np.float32)
             y = np.arange(h, dtype=np.float32)
@@ -221,9 +216,12 @@ class CyberpunkStyle(BaseStyle):
             ny = (my - h / 2.0) / (h / 2.0)
             d = np.sqrt(nx * nx + ny * ny)
             v = np.clip(1.0 - d * strength * 0.7, 0, 1)
-            img *= v[:, :, np.newaxis]
+            result *= v[:, :, np.newaxis]
 
-        canvas.paste(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
+        return Image.fromarray(np.clip(result, 0, 255).astype(np.uint8))
+
+    def apply_post_effects(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, size: tuple[int, int]):
+        pass
 
 
 class VaporwaveStyle(BaseStyle):
