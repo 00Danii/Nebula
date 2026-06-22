@@ -1,4 +1,5 @@
 from PIL import Image, ImageDraw
+import numpy as np
 
 from core.image_processor import ImageProcessor
 from core.grid_renderer import GridRenderer
@@ -104,7 +105,18 @@ class RenderEngine:
         subject = self.image_processor.enhance_contrast(subject_original)
         subject = self.image_processor.apply_adjustments(subject, self._adjustments)
 
-        data = self.data_generator.generate_all()
+        arr = np.array(subject.convert("RGB"), dtype=np.float32)
+        mean_rgb = (arr[:,:,0].mean(), arr[:,:,1].mean(), arr[:,:,2].mean())
+        gray = np.mean(arr, axis=2)
+        mean_l = gray.mean()
+        std_l = gray.std()
+
+        data = self.data_generator.generate_all(
+            img_w=subject.size[0], img_h=subject.size[1],
+            mean_rgb=mean_rgb, mean_l=mean_l, std_l=std_l,
+            adjustments=self._adjustments,
+            style_id=self.current_style_id,
+        )
 
         inner_w = self.canvas_size[0] - 2 * self.margin
         inner_h = self.canvas_size[1] - 2 * self.margin
