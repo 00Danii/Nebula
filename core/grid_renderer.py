@@ -87,9 +87,9 @@ class GridRenderer:
         cx, cy = ix + iw // 2, iy + ih // 2
         offset = 16
         points = {
-            "N": (cx - 5, iy - offset),
+            "N": (cx - 5, iy - offset - 10),
             "W": (ix - offset - 10, cy - 8),
-            "S": (cx - 5, iy + ih + offset - 8),
+            "S": (cx - 5, iy + ih + offset - 4),
             "E": (ix + iw + offset - 5, cy - 8),
         }
         for label, (x, y) in points.items():
