@@ -36,16 +36,7 @@ class RenderEngine:
             "exposure": 0,
         }
 
-        self._display_config: dict = {
-            "font_size_main": 20,
-            "font_size_small": 17,
-            "meta_font_size": 16,
-            "font_name": "Consola",
-            "grid_num_lines": 8,
-            "grid_line_width": 1,
-            "grid_show_on_image": False,
-            "show_metadata": True,
-        }
+        self._display_config: dict = dict(self.DISPLAY_DEFAULTS)
 
         self._history: list[dict] = []
         self._history_idx: int = -1
@@ -157,6 +148,21 @@ class RenderEngine:
         self._adjustments["temperature"] = 0
         self._adjustments["vibrance"] = 0
         self._adjustments["exposure"] = 0
+        self._save_state()
+
+    DISPLAY_DEFAULTS: dict = {
+        "font_size_main": 20,
+        "font_size_small": 17,
+        "meta_font_size": 16,
+        "font_name": "Consola",
+        "grid_num_lines": 8,
+        "grid_line_width": 1,
+        "grid_show_on_image": False,
+        "show_metadata": True,
+    }
+
+    def reset_display_config(self):
+        self._display_config.update(self.DISPLAY_DEFAULTS)
         self._save_state()
 
     def render(self, image_path: str) -> Image.Image:

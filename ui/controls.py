@@ -1037,6 +1037,9 @@ class ControlsPanel(tk.Frame):
         sep = tk.Frame(parent, height=1, bg=th.BORDER)
         sep.pack(fill=tk.X, padx=8, pady=3)
 
+        self._display_slider_vars: dict[str, tk.IntVar] = {}
+        self._display_toggle_widgets: dict[str, StyleParamToggle] = {}
+
         def _slider(parent, key, label, min_v, max_v, default):
             f = tk.Frame(parent, bg=th.BG_DARK)
             f.pack(fill=tk.X, pady=1)
@@ -1052,6 +1055,7 @@ class ControlsPanel(tk.Frame):
                          bd=0, sliderrelief=tk.FLAT)
             s.pack(side=tk.LEFT, padx=4, fill=tk.X, expand=True)
             s.bind("<ButtonRelease-1>", lambda e, k=key, v=var: _make_cb(k)(v.get()))
+            self._display_slider_vars[key] = var
             return var
 
         _slider(parent, "font_size_main", "Tam. texto grid", 9, 24, dc["font_size_main"])
@@ -1071,6 +1075,7 @@ class ControlsPanel(tk.Frame):
             w = StyleParamToggle(parent, label, initial="Si" if default else "No",
                                  on_change=_make_cb(key))
             w.pack(fill=tk.X, pady=1)
+            self._display_toggle_widgets[key] = w
             return w
 
         _toggle(parent, "grid_show_on_image", "Grid sobre imagen", dc["grid_show_on_image"])
@@ -1298,6 +1303,13 @@ class ControlsPanel(tk.Frame):
     def _clear_all(self):
         self._reset_adjustments()
         self._engine.reset_style()
+        self._engine.reset_display_config()
+        defaults = RenderEngine.DISPLAY_DEFAULTS
+        for key, var in self._display_slider_vars.items():
+            var.set(defaults[key])
+        for key, w in self._display_toggle_widgets.items():
+            w.set_value("Si" if defaults[key] else "No")
+        self._font_choice.set(defaults["font_name"])
         self._populate_styles()
         if self._image_path:
             self._schedule_render()
