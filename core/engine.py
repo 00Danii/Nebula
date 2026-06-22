@@ -152,6 +152,8 @@ class RenderEngine:
         "grid_line_width": 1,
         "grid_show_on_image": False,
         "show_metadata": True,
+        "metadata_style": "minimal",
+        "metadata_position": "outside",
     }
 
     def reset_display_config(self):
@@ -211,6 +213,7 @@ class RenderEngine:
         self.grid_renderer.show_on_image = dc["grid_show_on_image"]
 
         self.metadata_renderer.font_size_main = dc["meta_font_size"]
+        self.metadata_renderer.style_id = dc["metadata_style"]
 
         image_rect = (offset_x, offset_y, disp_w, disp_h)
         self.grid_renderer.render(
@@ -229,6 +232,9 @@ class RenderEngine:
                 height=self.canvas_size[1],
                 data=data,
                 color=palette["text"],
+                bg_color=style.background_color,
+                image_rect=image_rect,
+                position=dc["metadata_position"],
             )
         style.apply_post_effects(canvas, draw, self.canvas_size)
         return canvas
