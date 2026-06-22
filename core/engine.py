@@ -113,7 +113,7 @@ class RenderEngine:
 
     def set_display_config(self, key: str, value):
         if key in self._display_config:
-            if key in ("show_metadata", "grid_show_on_image"):
+            if key in ("show_metadata", "grid_show_on_image", "metadata_inside"):
                 value = value == "Si" if isinstance(value, str) else bool(value)
             self._display_config[key] = value
         self._save_state()
@@ -153,7 +153,7 @@ class RenderEngine:
         "grid_show_on_image": False,
         "show_metadata": True,
         "metadata_style": "minimal",
-        "metadata_position": "outside",
+        "metadata_inside": False,
     }
 
     def reset_display_config(self):
@@ -234,7 +234,7 @@ class RenderEngine:
                 color=palette["text"],
                 bg_color=style.background_color,
                 image_rect=image_rect,
-                position=dc["metadata_position"],
+                position="inside" if dc["metadata_inside"] else "outside",
             )
         style.apply_post_effects(canvas, draw, self.canvas_size)
         return canvas

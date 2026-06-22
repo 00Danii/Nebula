@@ -1052,16 +1052,7 @@ class ControlsPanel(tk.Frame):
                                                 on_select=self._on_meta_style_changed)
         self._meta_style_choice.pack(fill=tk.X, padx=8, pady=2)
 
-        lbl_pos = tk.Label(parent, text="Posicion metadata", font=(th.FONT_FAMILY, 9),
-                            bg=th.BG_DARK, fg=th.FG, anchor="w")
-        lbl_pos.pack(fill=tk.X, padx=8)
-        pos_map = {"outside": "Fuera de la imagen", "inside": "Dentro de la imagen"}
-        pos_names = list(pos_map.values())
-        pos_initial = pos_map.get(dc["metadata_position"], "Fuera de la imagen")
-        self._meta_pos_choice = DarkCombobox(parent, values=pos_names,
-                                              initial=pos_initial, width=25,
-                                              on_select=lambda v: self._on_meta_pos_changed(v, pos_map))
-        self._meta_pos_choice.pack(fill=tk.X, padx=8, pady=2)
+        _toggle(parent, "metadata_inside", "Metadata en imagen", dc["metadata_inside"])
 
         sep3 = tk.Frame(parent, height=1, bg=th.BORDER)
         sep3.pack(fill=tk.X, padx=8, pady=3)
@@ -1119,12 +1110,6 @@ class ControlsPanel(tk.Frame):
         if style_info:
             self._engine.set_display_config("metadata_style", style_info["id"])
             self._schedule_render()
-
-    def _on_meta_pos_changed(self, selected: str, pos_map: dict):
-        rev = {v: k for k, v in pos_map.items()}
-        key = rev.get(selected, "outside")
-        self._engine.set_display_config("metadata_position", key)
-        self._schedule_render()
 
     def _reset_adjustments(self):
         self._engine.reset_adjustments()
@@ -1306,7 +1291,6 @@ class ControlsPanel(tk.Frame):
             w.set_value("Si" if defaults[key] else "No")
         self._font_choice.set(defaults["font_name"])
         self._meta_style_choice.set("Minimal")
-        self._meta_pos_choice.set("Fuera de la imagen")
         self._populate_styles()
         if self._image_path:
             self._schedule_render()
