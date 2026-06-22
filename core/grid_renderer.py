@@ -1,4 +1,4 @@
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
 from utils.font_utils import FontManager
 
 
@@ -23,12 +23,13 @@ class GridRenderer:
 
     def render(
         self,
-        draw: ImageDraw.ImageDraw,
+        draw,
         width: int,
         height: int,
         grid_color,
         text_color,
         image_rect: tuple[int, int, int, int] | None = None,
+        canvas: Image.Image | None = None,
     ):
         font_main = self._font_manager.load(self._font_path, self.font_size_main)
         font_small = self._font_manager.load(self._font_path, self.font_size_small)
@@ -37,7 +38,7 @@ class GridRenderer:
             ix, iy, iw, ih = image_rect
             draw.rectangle([(ix, iy), (ix + iw, iy + ih)], outline=grid_color, width=self.line_width)
             self._draw_margin_ticks(draw, ix, iy, iw, ih, grid_color, font_small, self.num_lines)
-            self._draw_axes(draw, ix, iy, iw, ih, text_color, font_main, font_small)
+            self._draw_axes(draw, ix, iy, iw, ih, text_color, font_main, font_small, canvas)
             self._draw_cardinal_points(draw, ix, iy, iw, ih, text_color, font_main)
         else:
             self._draw_full_grid(draw, width, height, grid_color, self.num_lines)
@@ -75,7 +76,7 @@ class GridRenderer:
                 draw.line([(ix - tick_len, ty), (ix, ty)], fill=color, width=lw)
                 draw.line([(ix + iw, ty), (ix + iw + tick_len, ty)], fill=color, width=lw)
 
-    def _draw_axes(self, draw, ix, iy, iw, ih, color, font_main, font_small):
+    def _draw_axes(self, draw, ix, iy, iw, ih, color, font_main, font_small, canvas=None):
         for val in (-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0):
             x_pos = ix + (val + 2.0) * (iw / 4.0)
             if val != 0.0:
@@ -88,8 +89,13 @@ class GridRenderer:
 
         draw.text((ix + iw // 2 - 55, iy + ih + 28), "X, unidad de R_p", fill=color, font=font_main)
         draw.text((ix + iw // 2 - 55, iy - 32), "", fill=color, font=font_main)
-        draw.text((ix - 70, iy + ih // 2 - 8), "Y, unidad de R_p", fill=color, font=font_main)
-        draw.text((ix + iw + 12, iy + ih // 2 - 8), "", fill=color, font=font_main)
+
+        if canvas is not None:
+            temp = Image.new("RGBA", (200, 30), (0, 0, 0, 0))
+            temp_draw = ImageDraw.Draw(temp)
+            temp_draw.text((0, 0), "Y, unidad de R_p", fill=color, font=font_main)
+            rotated = temp.rotate(90, expand=True)
+            canvas.paste(rotated, (ix - 72, iy + ih // 2 - rotated.height // 2), rotated)
 
 
     def _draw_axes_fallback(self, draw, width, height, color, font_main, font_small):

@@ -221,6 +221,7 @@ class RenderEngine:
             grid_color=palette["grid"],
             text_color=palette["text"],
             image_rect=image_rect,
+            canvas=canvas,
         )
         if dc["show_metadata"]:
             self.metadata_renderer.render(
