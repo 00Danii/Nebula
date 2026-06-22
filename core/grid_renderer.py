@@ -78,16 +78,18 @@ class GridRenderer:
     def _draw_axes(self, draw, ix, iy, iw, ih, color, font_main, font_small):
         for val in (-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0):
             x_pos = ix + (val + 2.0) * (iw / 4.0)
-            draw.text((x_pos - 10, iy + ih + 4), f"{val:.1f}", fill=color, font=font_small)
-            draw.text((x_pos - 10, iy - 16), f"{val:.1f}", fill=color, font=font_small)
+            if val != 0.0:
+                draw.text((x_pos - 10, iy + ih + 14), f"{val:.1f}", fill=color, font=font_small)
+                draw.text((x_pos - 10, iy - 20), f"{val:.1f}", fill=color, font=font_small)
             y_pos = iy + (2.0 - val) * (ih / 4.0)
-            draw.text((ix - 42, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
-            draw.text((ix + iw + 6, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
+            if val != 0.0:
+                draw.text((ix - 46, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
+                draw.text((ix + iw + 14, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
 
-            draw.text((ix + iw // 2 - 55, iy + ih + 22), "X, unidad de R_p", fill=color, font=font_main)
-            draw.text((ix + iw // 2 - 55, iy - 30), "", fill=color, font=font_main)
-            draw.text((ix - 68, iy + ih // 2 - 8), "Y, unidad de R_p", fill=color, font=font_main)
-            draw.text((ix + iw + 10, iy + ih // 2 - 8), "", fill=color, font=font_main)
+        draw.text((ix + iw // 2 - 55, iy + ih + 28), "X, unidad de R_p", fill=color, font=font_main)
+        draw.text((ix + iw // 2 - 55, iy - 32), "", fill=color, font=font_main)
+        draw.text((ix - 70, iy + ih // 2 - 8), "Y, unidad de R_p", fill=color, font=font_main)
+        draw.text((ix + iw + 12, iy + ih // 2 - 8), "", fill=color, font=font_main)
 
 
     def _draw_axes_fallback(self, draw, width, height, color, font_main, font_small):
