@@ -88,7 +88,6 @@ class GridRenderer:
                 draw.text((ix + iw + 14, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
 
         draw.text((ix + iw // 2 - 55, iy + ih + 40), "X, unidad de R_p", fill=color, font=font_main)
-        draw.text((ix + iw // 2 - 55, iy - 32), "", fill=color, font=font_main)
 
         if canvas is not None:
             temp = Image.new("RGBA", (200, 30), (0, 0, 0, 0))
