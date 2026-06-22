@@ -87,12 +87,12 @@ class GridRenderer:
                 draw.text((ix - 46, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
                 draw.text((ix + iw + 14, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
 
-        draw.text((ix + iw // 2 - 55, iy + ih + 40), "X, unidad de R_p", fill=color, font=font_main)
+        draw.text((ix + iw // 2 - 55, iy + ih + 40), "X (unité de R_p)", fill=color, font=font_main)
 
         if canvas is not None:
             temp = Image.new("RGBA", (200, 30), (0, 0, 0, 0))
             temp_draw = ImageDraw.Draw(temp)
-            temp_draw.text((0, 0), "Y, unidad de R_p", fill=color, font=font_main)
+            temp_draw.text((0, 0), "Y (unité de R_p)", fill=color, font=font_main)
             rotated = temp.rotate(90, expand=True)
             canvas.paste(rotated, (ix - 72, iy + ih // 2 - rotated.height // 2), rotated)
 
