@@ -34,12 +34,42 @@ class RenderEngine:
             "exposure": 0,
         }
 
+        self._display_config: dict = {
+            "font_size_main": 14,
+            "font_size_small": 11,
+            "meta_font_size": 16,
+            "font_name": "Consola",
+            "grid_num_lines": 10,
+            "grid_line_width": 1,
+            "grid_show_on_image": False,
+            "show_metadata": True,
+        }
+
+    FONT_MAP: dict[str, str | None] = {
+        "Consola": "consola.ttf",
+        "Courier New": "cour.ttf",
+        "Arial": "arial.ttf",
+        "DejaVu Sans Mono": "DejaVuSansMono.ttf",
+        "Cascadia Code": "CascadiaCode.ttf",
+        "Defecto": None,
+    }
+
     def set_font(self, path: str | None):
         self.grid_renderer.font_path = path
         self.metadata_renderer.font_path = path
 
     def set_canvas_size(self, size: tuple[int, int]):
         self.canvas_size = size
+
+    @property
+    def display_config(self) -> dict:
+        return dict(self._display_config)
+
+    def set_display_config(self, key: str, value):
+        if key in self._display_config:
+            if key in ("show_metadata", "grid_show_on_image"):
+                value = value == "Si" if isinstance(value, str) else bool(value)
+            self._display_config[key] = value
 
     @property
     def original_image(self) -> Image.Image | None:
@@ -93,21 +123,37 @@ class RenderEngine:
         draw = ImageDraw.Draw(canvas)
         palette = style.get_palette()
 
+        dc = self._display_config
+
+        font_path = self.FONT_MAP.get(dc["font_name"], None)
+        self.grid_renderer.font_path = font_path
+        self.metadata_renderer.font_path = font_path
+
+        self.grid_renderer.font_size_main = dc["font_size_main"]
+        self.grid_renderer.font_size_small = dc["font_size_small"]
+        self.grid_renderer.num_lines = dc["grid_num_lines"]
+        self.grid_renderer.line_width = dc["grid_line_width"]
+        self.grid_renderer.show_on_image = dc["grid_show_on_image"]
+
+        self.metadata_renderer.font_size_main = dc["meta_font_size"]
+
+        image_rect = (offset_x, offset_y, disp_w, disp_h)
         self.grid_renderer.render(
             draw=draw,
             width=self.canvas_size[0],
             height=self.canvas_size[1],
             grid_color=palette["grid"],
             text_color=palette["text"],
-            image_rect=(offset_x, offset_y, disp_w, disp_h),
+            image_rect=image_rect,
         )
-        self.metadata_renderer.render(
-            draw=draw,
-            width=self.canvas_size[0],
-            height=self.canvas_size[1],
-            data=data,
-            color=palette["text"],
-        )
+        if dc["show_metadata"]:
+            self.metadata_renderer.render(
+                draw=draw,
+                width=self.canvas_size[0],
+                height=self.canvas_size[1],
+                data=data,
+                color=palette["text"],
+            )
         style.apply_post_effects(canvas, draw, self.canvas_size)
         return canvas
 

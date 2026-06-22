@@ -6,6 +6,8 @@ class MetadataRenderer:
     def __init__(self):
         self._font_manager = FontManager()
         self._font_path: str | None = None
+        self.font_size_main: int = 16
+        self.font_size_small: int = 12
 
     @property
     def font_path(self) -> str | None:
@@ -17,8 +19,8 @@ class MetadataRenderer:
         self._font_manager.clear_cache()
 
     def render(self, draw: ImageDraw.ImageDraw, width: int, height: int, data: dict, color):
-        font_main = self._font_manager.load(self._font_path, 16)
-        font_small = self._font_manager.load(self._font_path, 12)
+        font_main = self._font_manager.load(self._font_path, self.font_size_main)
+        font_small = self._font_manager.load(self._font_path, self.font_size_small)
 
         self._draw_pole(draw, data, color, font_main, font_small)
         self._draw_bottom_left(draw, height, data, color, font_main, font_small)

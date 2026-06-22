@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 
 import ui.theme as th
+from core.engine import RenderEngine
 
 
 class ModernButton(tk.Button):
@@ -991,6 +992,12 @@ class ControlsPanel(tk.Frame):
         self._params_container = tk.Frame(sc, bg=th.BG_DARK)
         self._params_container.pack(fill=tk.X, padx=0, pady=(0, 4))
 
+        display_sec = Section(parent, "Grid y Texto", expanded=True)
+        display_sec.pack(fill=tk.X, pady=(0, 4))
+        dc = display_sec.container
+
+        self._build_display_controls(dc)
+
         status_bar = tk.Frame(self, bg=th.BG_DARK, bd=0)
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         self._status_label = tk.Label(status_bar, text="Listo",
@@ -1000,6 +1007,63 @@ class ControlsPanel(tk.Frame):
         self._status_label.pack(fill=tk.X)
 
         self._populate_styles()
+
+    def _build_display_controls(self, parent):
+        dc = self._engine.display_config
+
+        def _make_cb(key):
+            return lambda v, k=key: self._on_display_changed(k, v)
+
+        def _slider(parent, key, label, min_v, max_v, default):
+            f = tk.Frame(parent, bg=th.BG_DARK)
+            f.pack(fill=tk.X, pady=1)
+            lbl = tk.Label(f, text=label, font=(th.FONT_FAMILY, 9),
+                           bg=th.BG_DARK, fg=th.FG, anchor="w", width=14)
+            lbl.pack(side=tk.LEFT, padx=8)
+            var = tk.IntVar(value=default)
+            s = tk.Scale(f, from_=min_v, to=max_v, orient=tk.HORIZONTAL,
+                         variable=var, showvalue=True,
+                         width=10, length=140,
+                         bg=th.BG_DARK, fg=th.FG, troughcolor=th.SLIDER_TROUGH,
+                         activebackground=th.ACCENT, highlightthickness=0,
+                         bd=0, sliderrelief=tk.FLAT)
+            s.pack(side=tk.LEFT, padx=4, fill=tk.X, expand=True)
+            s.bind("<ButtonRelease-1>", lambda e, k=key, v=var: _make_cb(k)(v.get()))
+            return var
+
+        _slider(parent, "font_size_main", "Tam. texto grid", 9, 24, dc["font_size_main"])
+        _slider(parent, "font_size_small", "Tam. texto ejes", 8, 18, dc["font_size_small"])
+        _slider(parent, "meta_font_size", "Tam. metadata", 10, 24, dc["meta_font_size"])
+
+        sep = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep.pack(fill=tk.X, padx=8, pady=3)
+
+        _slider(parent, "grid_num_lines", "Subdivisiones", 4, 20, dc["grid_num_lines"])
+        _slider(parent, "grid_line_width", "Grosor grid", 1, 4, dc["grid_line_width"])
+
+        sep2 = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep2.pack(fill=tk.X, padx=8, pady=3)
+
+        def _toggle(parent, key, label, default):
+            w = StyleParamToggle(parent, label, initial="Si" if default else "No",
+                                 on_change=_make_cb(key))
+            w.pack(fill=tk.X, pady=1)
+            return w
+
+        _toggle(parent, "grid_show_on_image", "Grid sobre imagen", dc["grid_show_on_image"])
+        _toggle(parent, "show_metadata", "Mostrar metadata", dc["show_metadata"])
+
+        sep3 = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep3.pack(fill=tk.X, padx=8, pady=3)
+
+        lbl = tk.Label(parent, text="Fuente", font=(th.FONT_FAMILY, 9),
+                       bg=th.BG_DARK, fg=th.FG, anchor="w")
+        lbl.pack(fill=tk.X, padx=8)
+        font_names = list(RenderEngine.FONT_MAP.keys())
+        self._font_choice = DarkCombobox(parent, values=font_names,
+                                          initial=dc["font_name"], width=25,
+                                          on_select=_make_cb("font_name"))
+        self._font_choice.pack(fill=tk.X, padx=8, pady=2)
 
     def _build_adjustments(self, parent):
         sliders = [
@@ -1033,6 +1097,10 @@ class ControlsPanel(tk.Frame):
         if key == "gamma":
             value = value / 100.0
         self._engine.set_adjustment(key, value)
+        self._schedule_render()
+
+    def _on_display_changed(self, key: str, value):
+        self._engine.set_display_config(key, value)
         self._schedule_render()
 
     def _reset_adjustments(self):
