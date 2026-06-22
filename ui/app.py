@@ -10,7 +10,7 @@ import ui.theme as th
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Editor de Analisis Visual Cientifico-Tecnico")
+        self.title("N\u00e9bula")
         self.attributes("-fullscreen", True)
         self.configure(bg=th.BG_DARK)
 
@@ -26,7 +26,7 @@ class App(tk.Tk):
         bar = tk.Frame(self, bg=th.BG_MEDIUM, bd=0)
         bar.pack(fill=tk.X, side=tk.TOP)
 
-        title = tk.Label(bar, text="Editor de Analisis Visual Cientifico-Tecnico",
+        title = tk.Label(bar, text="N\u00e9bula",
                          font=(th.FONT_FAMILY, 10), bg=th.BG_MEDIUM, fg=th.FG_DIM)
         title.pack(side=tk.LEFT, padx=8, pady=4)
 

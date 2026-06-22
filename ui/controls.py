@@ -896,7 +896,7 @@ class ControlsPanel(tk.Frame):
     def _build_content(self, parent):
         header = tk.Frame(parent, bg=th.BG_MEDIUM)
         header.pack(fill=tk.X, pady=(0, 8))
-        title = tk.Label(header, text="Editor de Imagen",
+        title = tk.Label(header, text="N\u00e9bula",
                          font=(th.FONT_FAMILY, 13, "bold"),
                          bg=th.BG_MEDIUM, fg=th.FG_BRIGHT, padx=10, pady=8)
         title.pack()
