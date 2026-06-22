@@ -1136,8 +1136,10 @@ class ControlsPanel(tk.Frame):
             widget.destroy()
         self._color_rows.clear()
         for key, color in style_info["colors"].items():
+            if key == "accent":
+                continue
             label = f"  {key.capitalize()}"
-            show_rgb = key not in ("text", "grid", "accent")
+            show_rgb = key not in ("text", "grid")
             row = ColorRow(
                 self._colors_container, label, color,
                 show_rgb=show_rgb,
