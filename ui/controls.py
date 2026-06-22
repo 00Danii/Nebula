@@ -899,6 +899,7 @@ class ControlsPanel(tk.Frame):
         self._color_rows: dict[str, ColorRow] = {}
         self._adj_sliders: dict[str, AdjustmentSlider] = {}
         self._style_param_widgets: dict[str, tk.Frame] = {}
+        self._display_color_widgets: dict[str, StyleParamColor] = {}
         self._image_path: str | None = None
         self._render_after_id: int | None = None
         self._build()
@@ -1013,6 +1014,28 @@ class ControlsPanel(tk.Frame):
 
         def _make_cb(key):
             return lambda v, k=key: self._on_display_changed(k, v)
+
+        try:
+            pal = self._engine.style_manager.get(self._engine.current_style_id).get_palette()
+            text_color = pal.get("text", (200, 200, 200))
+            grid_color = pal.get("grid", (100, 100, 100))
+        except Exception:
+            text_color = (200, 200, 200)
+            grid_color = (100, 100, 100)
+
+        def _color_cb(key):
+            return lambda c, k=key: self._on_color_changed(k, c)
+
+        w_text = StyleParamColor(parent, "Color texto", text_color, on_change=_color_cb("text"))
+        w_text.pack(fill=tk.X, pady=1)
+        self._display_color_widgets["text"] = w_text
+
+        w_grid = StyleParamColor(parent, "Color grid", grid_color, on_change=_color_cb("grid"))
+        w_grid.pack(fill=tk.X, pady=1)
+        self._display_color_widgets["grid"] = w_grid
+
+        sep = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep.pack(fill=tk.X, padx=8, pady=3)
 
         def _slider(parent, key, label, min_v, max_v, default):
             f = tk.Frame(parent, bg=th.BG_DARK)
@@ -1136,10 +1159,10 @@ class ControlsPanel(tk.Frame):
             widget.destroy()
         self._color_rows.clear()
         for key, color in style_info["colors"].items():
-            if key == "accent":
+            if key in ("accent", "text", "grid"):
                 continue
             label = f"  {key.capitalize()}"
-            show_rgb = key not in ("text", "grid")
+            show_rgb = True
             row = ColorRow(
                 self._colors_container, label, color,
                 show_rgb=show_rgb,
@@ -1147,6 +1170,10 @@ class ControlsPanel(tk.Frame):
             )
             row.pack(fill=tk.X, pady=1)
             self._color_rows[key] = row
+
+        for key in ("text", "grid"):
+            if key in style_info["colors"] and key in self._display_color_widgets:
+                self._display_color_widgets[key].set_color(style_info["colors"][key])
 
         for widget in self._params_container.winfo_children():
             widget.destroy()
