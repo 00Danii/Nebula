@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw
 import numpy as np
+import copy
 
 from core.image_processor import ImageProcessor
 from core.grid_renderer import GridRenderer
@@ -46,6 +47,66 @@ class RenderEngine:
             "show_metadata": True,
         }
 
+        self._history: list[dict] = []
+        self._history_idx: int = -1
+        self._max_history: int = 50
+        self._save_state()
+
+    def _save_state(self):
+        styles = self.style_manager
+        snapshot = {
+            "adjustments": copy.deepcopy(self._adjustments),
+            "display_config": copy.deepcopy(self._display_config),
+            "current_style_id": self.current_style_id,
+            "style_params": {
+                sid: styles.get(sid).get_style_params() if styles.get(sid) else {}
+                for sid in ["sepia","crt","thermal","noir","cyberpunk","vaporwave",
+                            "gold","ice","pastel","muted","invert","neon","duotone",
+                            "tritone","custom"]
+            },
+            "style_colors": {
+                sid: styles.get(sid).get_editable_colors() if styles.get(sid) else {}
+                for sid in ["sepia","crt","thermal","noir","cyberpunk","vaporwave",
+                            "gold","ice","pastel","muted","invert","neon","duotone",
+                            "tritone","custom"]
+            },
+        }
+        if self._history_idx < len(self._history) - 1:
+            self._history = self._history[:self._history_idx + 1]
+        self._history.append(snapshot)
+        if len(self._history) > self._max_history:
+            self._history.pop(0)
+        self._history_idx = len(self._history) - 1
+
+    def _restore_state(self, snapshot: dict):
+        self._adjustments = copy.deepcopy(snapshot["adjustments"])
+        self._display_config = copy.deepcopy(snapshot["display_config"])
+        self.current_style_id = snapshot["current_style_id"]
+        for sid, params in snapshot["style_params"].items():
+            style = self.style_manager.get(sid)
+            if not style:
+                continue
+            self.style_manager.reset_style(sid)
+            style = self.style_manager.get(sid)
+            for pname, pdef in params.items():
+                style.update_style_param(pname, pdef.get("value"))
+        for sid, colors in snapshot["style_colors"].items():
+            style = self.style_manager.get(sid)
+            if not style:
+                continue
+            for ckey, cval in colors.items():
+                style.update_color(ckey, cval)
+
+    def undo(self):
+        if self._history_idx > 0:
+            self._history_idx -= 1
+            self._restore_state(self._history[self._history_idx])
+
+    def redo(self):
+        if self._history_idx < len(self._history) - 1:
+            self._history_idx += 1
+            self._restore_state(self._history[self._history_idx])
+
     FONT_MAP: dict[str, str | None] = {
         "Consola": "consola.ttf",
         "Courier New": "cour.ttf",
@@ -71,6 +132,7 @@ class RenderEngine:
             if key in ("show_metadata", "grid_show_on_image"):
                 value = value == "Si" if isinstance(value, str) else bool(value)
             self._display_config[key] = value
+        self._save_state()
 
     @property
     def original_image(self) -> Image.Image | None:
@@ -83,6 +145,7 @@ class RenderEngine:
     def set_adjustment(self, key: str, value: float):
         if key in self._adjustments:
             self._adjustments[key] = value
+        self._save_state()
 
     def reset_adjustments(self):
         self._adjustments["brightness"] = 0
@@ -94,6 +157,7 @@ class RenderEngine:
         self._adjustments["temperature"] = 0
         self._adjustments["vibrance"] = 0
         self._adjustments["exposure"] = 0
+        self._save_state()
 
     def render(self, image_path: str) -> Image.Image:
         style = self.style_manager.get(self.current_style_id)
@@ -171,6 +235,11 @@ class RenderEngine:
 
     def update_style_param(self, param_name: str, value):
         self.style_manager.update_style_param(self.current_style_id, param_name, value)
+        self._save_state()
+
+    def update_style_color(self, color_key: str, value: tuple[int, int, int]):
+        self.style_manager.update_style_color(self.current_style_id, color_key, value)
+        self._save_state()
 
     def list_styles(self) -> list[dict]:
         return self.style_manager.list_styles()
@@ -178,7 +247,9 @@ class RenderEngine:
     def set_style(self, style_id: str):
         if self.style_manager.get(style_id):
             self.current_style_id = style_id
+        self._save_state()
 
     def reset_style(self):
         self.style_manager.reset_style(self.current_style_id)
+        self._save_state()
         self.set_style(self.current_style_id)

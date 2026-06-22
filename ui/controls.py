@@ -1238,7 +1238,7 @@ class ControlsPanel(tk.Frame):
             self._style_param_widgets[pname] = w
 
     def _on_color_changed(self, key: str, color: tuple[int, int, int]):
-        self._engine.style_manager.update_style_color(self._engine.current_style_id, key, color)
+        self._engine.update_style_color(key, color)
         self._schedule_render()
 
     def _on_style_param_changed(self, name: str, value):
@@ -1302,6 +1302,20 @@ class ControlsPanel(tk.Frame):
         if self._image_path:
             self._schedule_render()
         self._update_status("Todo restablecido")
+
+    def undo(self):
+        self._engine.undo()
+        self._populate_styles()
+        if self._image_path:
+            self._render()
+        self._update_status("Deshecho")
+
+    def redo(self):
+        self._engine.redo()
+        self._populate_styles()
+        if self._image_path:
+            self._render()
+        self._update_status("Rehecho")
 
     def load_image(self):
         self._load_image()

@@ -60,9 +60,12 @@ class App(tk.Tk):
         self._controls.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 0))
 
     def _bind_shortcuts(self):
-        self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
+        self.bind("<Escape>", lambda e: self._on_close())
         self.bind("<Control-o>", lambda e: self._controls.load_image())
         self.bind("<Control-s>", lambda e: self._controls.save_image())
+        self.bind("<Control-z>", lambda e: self._controls.undo())
+        self.bind("<Control-y>", lambda e: self._controls.redo())
+        self.bind("<Control-r>", lambda e: self._controls.clear_all())
         self.bind("<Control-q>", lambda e: self._on_close())
 
     def _do_render(self, image_path: str | None):
