@@ -81,7 +81,7 @@ class GridRenderer:
             x_pos = ix + (val + 2.0) * (iw / 4.0)
             if val != 0.0:
                 draw.text((x_pos - 10, iy + ih + 14), f"{val:.1f}", fill=color, font=font_small)
-                draw.text((x_pos - 10, iy - 20), f"{val:.1f}", fill=color, font=font_small)
+                draw.text((x_pos - 10, iy - 26), f"{val:.1f}", fill=color, font=font_small)
             y_pos = iy + (2.0 - val) * (ih / 4.0)
             if val != 0.0:
                 draw.text((ix - 46, y_pos - 8), f"{val:.1f}", fill=color, font=font_small)
