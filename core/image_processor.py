@@ -18,13 +18,6 @@ class ImageProcessor:
         hsv[:, :, 2] = clahe.apply(hsv[:, :, 2])
         return Image.fromarray(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB))
 
-    def to_grayscale(self, image: Image.Image) -> Image.Image:
-        return image.convert("L").convert("RGB")
-
-    def resize_to_fit(self, image: Image.Image, max_size: tuple[int, int]) -> Image.Image:
-        image.thumbnail(max_size, Image.LANCZOS)
-        return image
-
     def create_canvas(self, size: tuple[int, int], background: tuple[int, int, int] = (0, 0, 0)) -> Image.Image:
         return Image.new("RGB", size, background)
 

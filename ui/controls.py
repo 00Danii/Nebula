@@ -103,25 +103,9 @@ class AdjustmentSlider(tk.Frame):
         self._update_label()
         self._on_change(self._var.get())
 
-    def get_value(self) -> float:
-        return self._var.get()
-
     def set_value(self, value: float):
         self._var.set(value)
         self._update_label()
-
-    def configure_bg(self, bg):
-        for child in self.winfo_children():
-            try:
-                child.configure(bg=bg)
-            except tk.TclError:
-                pass
-            for sub in child.winfo_children():
-                try:
-                    sub.configure(bg=bg)
-                except tk.TclError:
-                    pass
-
 
 class DarkColorPicker(tk.Toplevel):
     FIELD_SIZE = 200
@@ -515,16 +499,6 @@ class ColorRow(tk.Frame):
             self._draw_swatch()
             self._on_change(self._color)
 
-    def get_color(self) -> tuple[int, int, int]:
-        return self._color
-
-    def set_color(self, color: tuple[int, int, int]):
-        self._color = color
-        self._var_r.set(color[0])
-        self._var_g.set(color[1])
-        self._var_b.set(color[2])
-        self._draw_swatch()
-
 
 class StyleParamSlider(tk.Frame):
     def __init__(self, parent, label: str, min_val: int, max_val: int,
@@ -552,9 +526,6 @@ class StyleParamSlider(tk.Frame):
 
     def _notify(self):
         self._on_change(int(self._var.get()))
-
-    def set_value(self, value: int):
-        self._var.set(value)
 
 
 class StyleParamColor(tk.Frame):
@@ -775,9 +746,6 @@ class DarkCombobox(tk.Frame):
             self._popup.destroy()
             self._popup = None
 
-    def get(self) -> str:
-        return self._entry.get()
-
     def set(self, value: str):
         self._entry.configure(state="normal")
         self._entry.delete(0, tk.END)
@@ -786,12 +754,6 @@ class DarkCombobox(tk.Frame):
 
     def configure_values(self, values: list[str]):
         self._values = values
-
-    def current(self) -> int:
-        val = self._entry.get()
-        if val in self._values:
-            return self._values.index(val)
-        return -1
 
 
 class DarkScrollbar(tk.Frame):
@@ -884,9 +846,6 @@ class DarkScrollbar(tk.Frame):
         if "command" in kwargs:
             self._command = kwargs.pop("command")
         super().configure(**kwargs)
-
-    def config(self, **kwargs):
-        self.configure(**kwargs)
 
 
 class ControlsPanel(tk.Frame):
@@ -1334,9 +1293,6 @@ class ControlsPanel(tk.Frame):
 
     def save_image(self):
         self._save_image()
-
-    def clear_image(self):
-        self._clear_image()
 
     def clear_all(self):
         self._clear_all()

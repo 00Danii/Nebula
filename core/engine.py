@@ -107,13 +107,6 @@ class RenderEngine:
         "Defecto": None,
     }
 
-    def set_font(self, path: str | None):
-        self.grid_renderer.font_path = path
-        self.metadata_renderer.font_path = path
-
-    def set_canvas_size(self, size: tuple[int, int]):
-        self.canvas_size = size
-
     @property
     def display_config(self) -> dict:
         return dict(self._display_config)

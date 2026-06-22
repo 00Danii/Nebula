@@ -42,6 +42,3 @@ class ImageCanvas(tk.Frame):
         self._image = None
         self._photo = None
         self._label.config(image="")
-
-    def get_image(self) -> Image.Image | None:
-        return self._image
