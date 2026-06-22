@@ -35,6 +35,7 @@ class GridRenderer:
 
         if image_rect:
             ix, iy, iw, ih = image_rect
+            draw.rectangle([(ix, iy), (ix + iw, iy + ih)], outline=grid_color, width=self.line_width)
             self._draw_margin_ticks(draw, ix, iy, iw, ih, grid_color, font_small, self.num_lines)
             self._draw_axes(draw, ix, iy, iw, ih, text_color, font_main, font_small)
             self._draw_cardinal_points(draw, ix, iy, iw, ih, text_color, font_main)
