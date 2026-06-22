@@ -6,9 +6,9 @@ class GridRenderer:
     def __init__(self):
         self._font_manager = FontManager()
         self._font_path: str | None = None
-        self.font_size_main: int = 14
-        self.font_size_small: int = 11
-        self.num_lines: int = 10
+        self.font_size_main: int = 20
+        self.font_size_small: int = 17
+        self.num_lines: int = 8
         self.line_width: int = 1
         self.show_on_image: bool = False
 

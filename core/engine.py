@@ -37,11 +37,11 @@ class RenderEngine:
         }
 
         self._display_config: dict = {
-            "font_size_main": 14,
-            "font_size_small": 11,
+            "font_size_main": 20,
+            "font_size_small": 17,
             "meta_font_size": 16,
             "font_name": "Consola",
-            "grid_num_lines": 10,
+            "grid_num_lines": 8,
             "grid_line_width": 1,
             "grid_show_on_image": False,
             "show_metadata": True,
