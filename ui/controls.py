@@ -1038,7 +1038,7 @@ class ControlsPanel(tk.Frame):
         sep = tk.Frame(parent, height=1, bg=th.BORDER)
         sep.pack(fill=tk.X, padx=8, pady=3)
 
-        _slider(parent, "grid_num_lines", "Subdivisiones", 4, 20, dc["grid_num_lines"])
+        _slider(parent, "grid_num_lines", "Subdivisiones", 2, 20, dc["grid_num_lines"])
         _slider(parent, "grid_line_width", "Grosor grid", 1, 4, dc["grid_line_width"])
 
         sep2 = tk.Frame(parent, height=1, bg=th.BORDER)
