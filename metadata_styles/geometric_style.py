@@ -76,7 +76,11 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         th = b_small[3] - b_small[1]
 
         arc_row_h = 2 * r_arc + (8 + th if inside else 24 + th)
-        dial_h = 2 * r_dial + th + 8
+        np_text = f"NP {data['np']}"
+        b_np = draw.textbbox((0, 0), np_text, font=font_small)
+        np_tw = b_np[2] - b_np[0]
+        np_th = b_np[3] - b_np[1]
+        dial_h = r_dial + 40 + np_th
         total_h = arc_row_h + spacing + dial_h
 
         y_offset = oy + height - total_h - (6 if inside else 10)
@@ -88,52 +92,34 @@ class GeometricMetadataStyle(BaseMetadataStyle):
             for i, (label, key) in enumerate([("SEP", "sep"), ("SSP", "ssp")]):
                 arc_cx = x + gap * i + r_arc
                 val = data[key]
+                
+                b_val = draw.textbbox((0, 0), val, font=font_small)
+                b_lbl = draw.textbbox((0, 0), f"{label}:", font=font_small)
+                text_w = max(b_lbl[2] - b_lbl[0], b_val[2] - b_val[0])
 
-                if inside:
-                    text = f"{label}: {val}"
-                    b_text = draw.textbbox((0, 0), text, font=font_small)
-                    tw = b_text[2] - b_text[0]
+                if bg:
+                    draw.rectangle(
+                        (arc_cx - r_arc - 10, arc_cy - r_arc - 10, arc_cx + r_arc + 16, arc_cy + r_arc + 42),
+                        fill=bg,
+                    )
 
-                    if bg:
-                        draw.rectangle(
-                            (arc_cx - tw // 2 - 8, arc_cy - r_arc - 10, arc_cx + tw // 2 + 8, arc_cy + r_arc + 10),
-                            fill=bg,
-                        )
+                draw.arc((arc_cx - r_arc, arc_cy - r_arc, arc_cx + r_arc, arc_cy + r_arc), start=0, end=180, fill=color, width=2)
+                draw.line((arc_cx - r_arc, arc_cy, arc_cx + r_arc, arc_cy), fill=color, width=1)
+                mid_rad = math.radians(90)
+                mx = arc_cx + r_arc * math.cos(mid_rad)
+                my = arc_cy - r_arc * math.sin(mid_rad)
+                draw.line((arc_cx, arc_cy, mx, my), fill=color, width=2)
+                draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 8), f"{label}:", fill=color, font=font_small)
+                draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 24), val, fill=color, font=font_small)
 
-                    draw.arc((arc_cx - r_arc, arc_cy - r_arc, arc_cx + r_arc, arc_cy + r_arc), start=0, end=180, fill=color, width=2)
-                    draw.line((arc_cx - r_arc, arc_cy, arc_cx + r_arc, arc_cy), fill=color, width=1)
-                    mid_rad = math.radians(90)
-                    mx = arc_cx + r_arc * math.cos(mid_rad)
-                    my = arc_cy - r_arc * math.sin(mid_rad)
-                    draw.line((arc_cx, arc_cy, mx, my), fill=color, width=2)
-                    draw.text((arc_cx - tw // 2, arc_cy + r_arc + 8), text, fill=color, font=font_small)
-                else:
-                    b_val = draw.textbbox((0, 0), val, font=font_small)
-                    b_lbl = draw.textbbox((0, 0), f"{label}:", font=font_small)
-                    text_w = max(b_lbl[2] - b_lbl[0], b_val[2] - b_val[0])
-
-                    if bg:
-                        draw.rectangle(
-                            (arc_cx - r_arc - 10, arc_cy - r_arc - 10, arc_cx + r_arc + 16, arc_cy + r_arc + 42),
-                            fill=bg,
-                        )
-
-                    draw.arc((arc_cx - r_arc, arc_cy - r_arc, arc_cx + r_arc, arc_cy + r_arc), start=0, end=180, fill=color, width=2)
-                    draw.line((arc_cx - r_arc, arc_cy, arc_cx + r_arc, arc_cy), fill=color, width=1)
-                    mid_rad = math.radians(90)
-                    mx = arc_cx + r_arc * math.cos(mid_rad)
-                    my = arc_cy - r_arc * math.sin(mid_rad)
-                    draw.line((arc_cx, arc_cy, mx, my), fill=color, width=2)
-                    draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 8), f"{label}:", fill=color, font=font_small)
-                    draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 24), val, fill=color, font=font_small)
+        dial_cx = x + r_dial
 
         if bg:
             draw.rectangle(
-                (x + gap * 0 - 4, dial_cy - r_dial - 10, x + gap * 0 + 2 * r_dial + 36, dial_cy + r_dial + 14),
+                (dial_cx - r_dial - 10, dial_cy - r_dial - 10, dial_cx + max(r_dial + 10, np_tw // 2 + 10), dial_cy + 40 + np_th + 4),
                 fill=bg,
             )
 
-        dial_cx = x + r_dial
         draw.arc((dial_cx - r_dial, dial_cy - r_dial, dial_cx + r_dial, dial_cy + r_dial), start=0, end=180, fill=color, width=3)
         draw.line((dial_cx - r_dial, dial_cy, dial_cx + r_dial, dial_cy), fill=color, width=1)
 
@@ -152,7 +138,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         nx = dial_cx + (r_dial - 4) * math.cos(rad)
         ny = dial_cy - (r_dial - 4) * math.sin(rad)
         draw.line((dial_cx, dial_cy, nx, ny), fill=color, width=2)
-        draw.text((dial_cx - 10, dial_cy + 40), f"NP {data['np']}", fill=color, font=font_small)
+        draw.text((dial_cx - np_tw // 2, dial_cy + 40), np_text, fill=color, font=font_small)
 
     def _draw_tick_marks(self, draw, width, height, data, color, font_small, bg, ox, oy, inside):
         arc_str = data["arc"]
