@@ -25,9 +25,9 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         position: str = "outside",
     ):
         inside = position == "inside" and image_rect is not None
-        w = self._img_w(image_rect, width) if inside else width
-        h = self._img_h(image_rect, height) if inside else height
-        ox, oy = self._img_offset(image_rect, 0, 0) if inside else (0, 0)
+        w = self._img_w(image_rect, width) if image_rect is not None else width
+        h = self._img_h(image_rect, height) if image_rect is not None else height
+        ox, oy = self._img_offset(image_rect, 0, 0) if image_rect is not None else (0, 0)
         bg = self._blend_bg(bg_color) if bg_color else None
 
         self._draw_pole(draw, data, color, font_main, font_small, bg, ox, oy, inside)
@@ -35,15 +35,17 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         self._draw_arcseconds(draw, w, h, data, color, font_main, bg, ox, oy, inside)
 
     def _draw_pole(self, draw, data, color, font_main, font_small, bg, ox, oy, inside):
-        x, y = ox + (6 if inside else 30), oy + (5 if inside else 30)
+        line1 = "Pole (ECJ2000):"
+        line2 = f"{data['pole']}"
+        b1 = draw.textbbox((0, 0), line1, font=font_main)
+        b2 = draw.textbbox((0, 0), line2, font=font_small)
+        tw = max(b1[2] - b1[0], b2[2] - b2[0])
+        th2 = b2[3] - b2[1]
+        block_h = 25 + th2 + 6
+        x = ox + 6
+        y = oy + (5 if inside else -block_h - 5)
+
         if bg:
-            line1 = "Pole (ECJ2000):"
-            line2 = f"{data['pole']}"
-            b1 = draw.textbbox((0, 0), line1, font=font_main)
-            b2 = draw.textbbox((0, 0), line2, font=font_small)
-            tw = max(b1[2] - b1[0], b2[2] - b2[0])
-            th1 = b1[3] - b1[1]
-            th2 = b2[3] - b2[1]
             draw.rectangle(
                 (x - 4, y - 3, x + tw + 4, y + 25 + th2 + 3),
                 fill=bg,
@@ -52,7 +54,7 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         draw.text((x, y + 25), f"{data['pole']}", fill=color, font=font_small)
 
     def _draw_bottom_left(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
-        x = ox + (6 if inside else 30)
+        x = ox + 6
         lines = [
             ("SEP (w,\u03b4):", font_main, 0, 0),
             (f"{data['sep']}", font_small, 0, 22),
@@ -64,7 +66,7 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         last_line = lines[-1]
         b_last = draw.textbbox((0, 0), last_line[0], font=last_line[1])
         total_h = lines[-1][3] + (b_last[3] - b_last[1])
-        y_offset = oy + height - total_h - (6 if inside else 10)
+        y_offset = oy + (height - total_h - 6 if inside else height + 10)
         if bg:
             max_w = 0
             first_y = y_offset + lines[0][3]
@@ -86,7 +88,7 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         bbox = draw.textbbox((0, 0), label, font=font_main)
         tw = bbox[2] - bbox[0]
         ty = bbox[3] - bbox[1]
-        x = ox + width - tw - (6 if inside else 10)
-        y = oy + height - (ty + 5 if inside else 30)
+        x = ox + width - tw - 6
+        y = oy + (height - ty - 5 if inside else height + 10)
         self._text_bg(draw, x, y, label, font_main, bg)
         draw.text((x, y), label, fill=color, font=font_main)
