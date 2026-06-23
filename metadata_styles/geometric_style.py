@@ -31,110 +31,155 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         ox, oy = self._img_offset(image_rect, 0, 0) if inside else (0, 0)
         bg = self._blend_bg(bg_color) if bg_color else None
 
-        margin = 8 if inside else 80
-        self._draw_crosshair(draw, w, h, margin, data, color, font_small, bg, ox, oy)
-        self._draw_angle_arcs(draw, h, data, color, font_main, font_small, bg, ox)
-        self._draw_dial_gauge(draw, h, data, color, font_main, font_small, bg, ox, oy)
-        self._draw_tick_marks(draw, w, h, data, color, font_small, bg, ox, oy)
+        margin = 16 if inside else 80
+        self._draw_crosshair(draw, w, h, margin, data, color, font_small, bg, ox, oy, inside)
+        self._draw_bottom_left(draw, h, data, color, font_main, font_small, bg, ox, oy, inside)
+        self._draw_tick_marks(draw, w, h, data, color, font_small, bg, ox, oy, inside)
 
-    def _draw_crosshair(self, draw, width, height, margin, data, color, font_small, bg, ox, oy):
+    def _draw_crosshair(self, draw, width, height, margin, data, color, font_small, bg, ox, oy, inside):
         cx, cy = ox + width // 2, oy + height // 2
+        cr = min(width, height) // 2 - margin
+
         draw.line((ox + margin, cy, ox + width - margin, cy), fill=color, width=1)
         draw.line((cx, oy + margin, cx, oy + height - margin), fill=color, width=1)
 
-        draw.line((cx - 6, cy, cx + 6, cy), fill=color, width=2)
-        draw.line((cx, cy - 6, cx, cy + 6), fill=color, width=2)
+        if inside and cr > 20:
+            draw.ellipse((cx - cr, cy - cr, cx + cr, cy + cr), outline=color, width=1)
+            for deg in range(0, 360, 30):
+                rad = math.radians(deg)
+                r1 = cr
+                r2 = cr - 6 if deg % 90 == 0 else cr - 4
+                x1 = cx + r1 * math.cos(rad)
+                y1 = cy + r1 * math.sin(rad)
+                x2 = cx + r2 * math.cos(rad)
+                y2 = cy + r2 * math.sin(rad)
+                draw.line((x1, y1, x2, y2), fill=color, width=1)
+
+        draw.line((cx - 8, cy, cx + 8, cy), fill=color, width=2)
+        draw.line((cx, cy - 8, cx, cy + 8), fill=color, width=2)
 
         pole = data["pole"]
-        px = cx + 10
-        py = oy + margin - 8
+        px = cx - cr + 6
+        py = cy - cr - 16
         if bg:
             self._text_bg(draw, px, py, pole, font_small, bg)
         draw.text((px, py), pole, fill=color, font=font_small)
 
-    def _draw_angle_arcs(self, draw, height, data, color, font_main, font_small, bg, ox):
-        base_x, base_y = ox + 30, height - 170
-        r = 38
-        gap = 115
+    def _draw_bottom_left(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
+        x = ox + (20 if inside else 30)
+        r_arc = 36
+        r_dial = 24
+        gap = 110
+        spacing = 10
 
-        for i, (label, key) in enumerate([("SEP", "sep"), ("SSP", "ssp")]):
-            cx = base_x + gap * i + r
-            cy = base_y + r
+        b_small = draw.textbbox((0, 0), "Tg", font=font_small)
+        th = b_small[3] - b_small[1]
 
-            if bg:
-                draw.rectangle(
-                    (cx - r - 10, cy - r - 10, cx + r + 16, cy + r + 42),
-                    fill=bg,
-                )
+        arc_row_h = 2 * r_arc + (8 + th if inside else 24 + th)
+        dial_h = 2 * r_dial + th + 8
+        total_h = arc_row_h + spacing + dial_h
 
-            draw.arc(
-                (cx - r, cy - r, cx + r, cy + r),
-                start=0, end=180,
-                fill=color, width=2,
-            )
-            draw.line((cx - r, cy, cx + r, cy), fill=color, width=1)
-            draw.line((cx, cy, cx + r, cy), fill=color, width=2)
+        y_offset = oy + height - total_h - (6 if inside else 10)
 
-            val = data[key]
-            if bg:
-                self._text_bg(draw, cx - r, cy + r + 8, f"{label}:", font_small, bg)
-                self._text_bg(draw, cx - r, cy + r + 24, val, font_small, bg)
-            draw.text((cx - r, cy + r + 8), f"{label}:", fill=color, font=font_small)
-            draw.text((cx - r, cy + r + 24), val, fill=color, font=font_small)
+        arc_cy = y_offset + r_arc
+        dial_cy = y_offset + arc_row_h + spacing + r_dial
 
-    def _draw_dial_gauge(self, draw, height, data, color, font_main, font_small, bg, ox, oy):
-        cx, cy = ox + 170, height - 65
-        r = 26
+        if not inside:
+            for i, (label, key) in enumerate([("SEP", "sep"), ("SSP", "ssp")]):
+                arc_cx = x + gap * i + r_arc
+                val = data[key]
+
+                if inside:
+                    text = f"{label}: {val}"
+                    b_text = draw.textbbox((0, 0), text, font=font_small)
+                    tw = b_text[2] - b_text[0]
+
+                    if bg:
+                        draw.rectangle(
+                            (arc_cx - tw // 2 - 8, arc_cy - r_arc - 10, arc_cx + tw // 2 + 8, arc_cy + r_arc + 10),
+                            fill=bg,
+                        )
+
+                    draw.arc((arc_cx - r_arc, arc_cy - r_arc, arc_cx + r_arc, arc_cy + r_arc), start=0, end=180, fill=color, width=2)
+                    draw.line((arc_cx - r_arc, arc_cy, arc_cx + r_arc, arc_cy), fill=color, width=1)
+                    mid_rad = math.radians(90)
+                    mx = arc_cx + r_arc * math.cos(mid_rad)
+                    my = arc_cy - r_arc * math.sin(mid_rad)
+                    draw.line((arc_cx, arc_cy, mx, my), fill=color, width=2)
+                    draw.text((arc_cx - tw // 2, arc_cy + r_arc + 8), text, fill=color, font=font_small)
+                else:
+                    b_val = draw.textbbox((0, 0), val, font=font_small)
+                    b_lbl = draw.textbbox((0, 0), f"{label}:", font=font_small)
+                    text_w = max(b_lbl[2] - b_lbl[0], b_val[2] - b_val[0])
+
+                    if bg:
+                        draw.rectangle(
+                            (arc_cx - r_arc - 10, arc_cy - r_arc - 10, arc_cx + r_arc + 16, arc_cy + r_arc + 42),
+                            fill=bg,
+                        )
+
+                    draw.arc((arc_cx - r_arc, arc_cy - r_arc, arc_cx + r_arc, arc_cy + r_arc), start=0, end=180, fill=color, width=2)
+                    draw.line((arc_cx - r_arc, arc_cy, arc_cx + r_arc, arc_cy), fill=color, width=1)
+                    mid_rad = math.radians(90)
+                    mx = arc_cx + r_arc * math.cos(mid_rad)
+                    my = arc_cy - r_arc * math.sin(mid_rad)
+                    draw.line((arc_cx, arc_cy, mx, my), fill=color, width=2)
+                    draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 8), f"{label}:", fill=color, font=font_small)
+                    draw.text((arc_cx - text_w // 2, arc_cy + r_arc + 24), val, fill=color, font=font_small)
 
         if bg:
             draw.rectangle(
-                (cx - r - 10, cy - r - 10, cx + r + 30, cy + r + 14),
+                (x + gap * 0 - 4, dial_cy - r_dial - 10, x + gap * 0 + 2 * r_dial + 36, dial_cy + r_dial + 14),
                 fill=bg,
             )
 
-        draw.arc(
-            (cx - r, cy - r, cx + r, cy + r),
-            start=0, end=180,
-            fill=color, width=3,
-        )
-        draw.line((cx - r, cy, cx + r, cy), fill=color, width=1)
+        dial_cx = x + r_dial
+        draw.arc((dial_cx - r_dial, dial_cy - r_dial, dial_cx + r_dial, dial_cy + r_dial), start=0, end=180, fill=color, width=3)
+        draw.line((dial_cx - r_dial, dial_cy, dial_cx + r_dial, dial_cy), fill=color, width=1)
+
+        for val in [0.5, 0.75, 1.0]:
+            a = 180 * (val - 0.5) / 0.5
+            rad = math.radians(180 - a)
+            tk_x = dial_cx + (r_dial - 4) * math.cos(rad)
+            tk_y = dial_cy - (r_dial - 4) * math.sin(rad)
+            tk_x2 = dial_cx + (r_dial - 10) * math.cos(rad)
+            tk_y2 = dial_cy - (r_dial - 10) * math.sin(rad)
+            draw.line((tk_x, tk_y, tk_x2, tk_y2), fill=color, width=1)
 
         np_val = float(data["np"])
         angle = 180 * (np_val - 0.5) / 0.5
         rad = math.radians(180 - angle)
-        nx = cx + (r - 6) * math.cos(rad)
-        ny = cy - (r - 6) * math.sin(rad)
-        draw.line((cx, cy, nx, ny), fill=color, width=2)
+        nx = dial_cx + (r_dial - 4) * math.cos(rad)
+        ny = dial_cy - (r_dial - 4) * math.sin(rad)
+        draw.line((dial_cx, dial_cy, nx, ny), fill=color, width=2)
+        draw.text((dial_cx - 10, dial_cy + 40), f"NP {data['np']}", fill=color, font=font_small)
 
-        np_label = f"NP {data['np']}"
-        if bg:
-            self._text_bg(draw, cx - 12, cy + 6, np_label, font_small, bg)
-        draw.text((cx - 12, cy + 6), np_label, fill=color, font=font_small)
+    def _draw_tick_marks(self, draw, width, height, data, color, font_small, bg, ox, oy, inside):
+        arc_str = data["arc"]
+        label = f"arcsecond: {arc_str}"
+        bbox = draw.textbbox((0, 0), label, font=font_small)
+        tw = bbox[2] - bbox[0]
+        ty = bbox[3] - bbox[1]
 
-    def _draw_tick_marks(self, draw, width, height, data, color, font_small, bg, ox, oy):
-        y = oy + height - 12
-        x_start = ox + width - 190
-        x_end = ox + width - 14
+        bar_w = 160
+        pad_right = 6 if inside else 10
+        bar_x = ox + width - bar_w - pad_right
+        bar_y = oy + height - (ty + 5 if inside else 30)
         num_ticks = 5
 
         if bg:
             draw.rectangle(
-                (x_start - 6, y - 24, x_end + 6, y + 8),
+                (bar_x - 6, bar_y - 22, bar_x + bar_w + 6, bar_y + 10),
                 fill=bg,
             )
 
-        draw.line((x_start, y, x_end, y), fill=color, width=1)
+        draw.line((bar_x, bar_y, bar_x + bar_w, bar_y), fill=color, width=1)
 
         for i in range(num_ticks):
-            x = x_start + (x_end - x_start) * i // (num_ticks - 1)
+            x = bar_x + bar_w * i // (num_ticks - 1)
             tick_h = 8 if i % 2 == 0 else 4
-            draw.line((x, y - tick_h, x, y + tick_h), fill=color, width=1)
+            draw.line((x, bar_y - tick_h, x, bar_y + tick_h), fill=color, width=1)
 
-        label = f"arcsecond: {data['arc']}"
-        bbox = draw.textbbox((0, 0), label, font=font_small)
-        tw = bbox[2] - bbox[0]
-        lx = x_start + (x_end - x_start) // 2 - tw // 2
-        ly = y - 22
-        if bg:
-            self._text_bg(draw, lx, ly, label, font_small, bg)
+        lx = bar_x + bar_w // 2 - tw // 2
+        ly = bar_y - 20
         draw.text((lx, ly), label, fill=color, font=font_small)
