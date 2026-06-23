@@ -52,7 +52,6 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         draw.text((x, y + 25), f"{data['pole']}", fill=color, font=font_small)
 
     def _draw_bottom_left(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
-        y_offset = oy + height - 130
         x = ox + (6 if inside else 30)
         lines = [
             ("SEP (w,\u03b4):", font_main, 0, 0),
@@ -62,12 +61,14 @@ class MinimalMetadataStyle(BaseMetadataStyle):
             ("NP:", font_main, 0, 98),
             (f"{data['np']}", font_main, 35, 98),
         ]
+        last_line = lines[-1]
+        b_last = draw.textbbox((0, 0), last_line[0], font=last_line[1])
+        total_h = lines[-1][3] + (b_last[3] - b_last[1])
+        y_offset = oy + height - total_h - (6 if inside else 10)
         if bg:
             max_w = 0
             first_y = y_offset + lines[0][3]
-            last_line = lines[-1]
-            b_last = draw.textbbox((0, 0), last_line[0], font=last_line[1])
-            last_y = y_offset + last_line[3] + (b_last[3] - b_last[1])
+            last_y = y_offset + total_h
             for text, font, dx, dy in lines:
                 b = draw.textbbox((0, 0), text, font=font)
                 tw = (b[2] - b[0]) + dx
