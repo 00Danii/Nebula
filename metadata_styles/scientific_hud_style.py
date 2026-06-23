@@ -77,9 +77,20 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
         np_val_str = f"{np_val:.2f}"
 
         b_sep = draw.textbbox((0, 0), sep_text, font=font_main)
+        b_np_label = draw.textbbox((0, 0), "NP:", font=font_main)
+        b_np_val = draw.textbbox((0, 0), np_val_str, font=font_main)
         line_h = b_sep[3] - b_sep[1]
         panel_h = line_h + 20
         spacing = 6
+
+        sep_text_w = b_sep[2] - b_sep[0]
+        b_ssp = draw.textbbox((0, 0), ssp_text, font=font_main)
+        ssp_text_w = b_ssp[2] - b_ssp[0]
+        np_label_w = b_np_label[2] - b_np_label[0]
+        np_val_w = b_np_val[2] - b_np_val[0]
+        bar_w = max(140, int(sep_text_w * 0.6))
+        np_total_w = 8 + np_label_w + 8 + bar_w + 8 + np_val_w + 8
+        panel_w = max(sep_text_w, ssp_text_w, np_total_w) + 16
 
         sep_y = 0
         ssp_y = panel_h + spacing
@@ -90,23 +101,22 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
 
         if bg:
             draw.rectangle(
-                (x - 4, y_offset + sep_y - 4, x + 310, y_offset + np_y + panel_h + 4),
+                (x - 4, y_offset + sep_y - 4, x + panel_w + 4, y_offset + np_y + panel_h + 4),
                 fill=bg,
             )
 
-        draw.rectangle((x, y_offset + sep_y, x + 300, y_offset + sep_y + panel_h), outline=color, width=1)
+        draw.rectangle((x, y_offset + sep_y, x + panel_w, y_offset + sep_y + panel_h), outline=color, width=1)
         draw.text((x + 8, y_offset + sep_y + 4), sep_text, fill=color, font=font_main)
 
-        draw.rectangle((x, y_offset + ssp_y, x + 300, y_offset + ssp_y + panel_h), outline=color, width=1)
+        draw.rectangle((x, y_offset + ssp_y, x + panel_w, y_offset + ssp_y + panel_h), outline=color, width=1)
         draw.text((x + 8, y_offset + ssp_y + 4), ssp_text, fill=color, font=font_main)
 
-        draw.rectangle((x, y_offset + np_y, x + 300, y_offset + np_y + panel_h), outline=color, width=1)
+        draw.rectangle((x, y_offset + np_y, x + panel_w, y_offset + np_y + panel_h), outline=color, width=1)
         draw.text((x + 8, y_offset + np_y + 4), "NP:", fill=color, font=font_main)
 
-        bar_x = x + 50
+        bar_x = x + 8 + np_label_w + 8
         bar_y = y_offset + np_y + 7
-        bar_w = 180
-        bar_h = 12
+        bar_h = max(10, line_h)
         draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), outline=color, width=1)
         fill_w = int(bar_w * (np_val - 0.5) / 0.5)
         if fill_w > 0:
