@@ -30,131 +30,113 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
         ox, oy = self._img_offset(image_rect, 0, 0) if inside else (0, 0)
         bg = self._blend_bg(bg_color) if bg_color else None
 
-        self._draw_compass(draw, data, color, font_main, font_small, bg, ox, oy)
-        self._draw_panels(draw, h, data, color, font_main, font_small, bg, ox)
-        self._draw_scale_bar(draw, w, h, data, color, font_main, font_small, bg, ox, oy)
+        self._draw_compass(draw, data, color, font_main, font_small, bg, ox, oy, inside)
+        self._draw_panels(draw, h, data, color, font_main, font_small, bg, ox, oy, inside)
+        self._draw_scale_bar(draw, w, h, data, color, font_main, font_small, bg, ox, oy, inside)
 
-    def _draw_compass(self, draw, data, color, font_main, font_small, bg, ox, oy):
-        cx, cy = ox + 45, oy + 55
+    def _draw_compass(self, draw, data, color, font_main, font_small, bg, ox, oy, inside):
+        x, y = ox + (8 if inside else 30), oy + (8 if inside else 30)
+        cx, cy = x + 30, y + 30
         r = 28
-        r2 = 23
-
-        if bg:
-            draw.ellipse((cx - r - 4, cy - r - 4, cx + r + 4, cy + r + 4), fill=bg)
-        draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=color, width=1)
-        draw.line((cx - r2, cy, cx + r2, cy), fill=color, width=1)
-        draw.line((cx, cy - r2, cx, cy + r2), fill=color, width=1)
-
-        for text, dx, dy in [("N", 0, -r - 8), ("S", 0, r + 6), ("E", r + 6, 0), ("W", -r - 10, 0)]:
-            bbox = draw.textbbox((0, 0), text, font=font_small)
-            tw = bbox[2] - bbox[0]
-            th = bbox[3] - bbox[1]
-            tx = cx + dx - tw // 2
-            ty = cy + dy - th // 2
-            if bg:
-                self._text_bg(draw, tx, ty, text, font_small, bg)
-            draw.text((tx, ty), text, fill=color, font=font_small)
 
         pole_label = "Pole (ECJ2000):"
         pole_val = data["pole"]
-        lx = ox + 10
-        ly = cy + r + 10
+        lx = x
+        ly = cy + r + 8
+
+        b_pole_label = draw.textbbox((0, 0), pole_label, font=font_main)
+        b_pole_val = draw.textbbox((0, 0), pole_val, font=font_small)
+        text_w = max(b_pole_label[2] - b_pole_label[0], b_pole_val[2] - b_pole_val[0])
+        pole_th = b_pole_val[3] - b_pole_val[1]
+
         if bg:
-            self._text_bg(draw, lx, ly, pole_label, font_main, bg)
-            self._text_bg(draw, lx, ly + 22, pole_val, font_small, bg)
+            group_x = min(cx - r, lx) - 6
+            group_y = min(cy - r, y) - 6
+            group_w = max(cx + r, lx + text_w) - group_x + 12
+            group_h = max(cy + r, ly + 22 + pole_th) - group_y + 8
+            draw.rectangle((group_x, group_y, group_x + group_w, group_y + group_h), fill=bg)
+
+        draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=color, width=1)
+        draw.line((cx - r + 5, cy, cx + r - 5, cy), fill=color, width=1)
+        draw.line((cx, cy - r + 5, cx, cy + r - 5), fill=color, width=1)
+
+        for text, dx, dy in [("N", 0, -r - 6), ("S", 0, r + 4), ("E", r + 4, 0), ("W", -r - 8, 0)]:
+            b = draw.textbbox((0, 0), text, font=font_small)
+            tw = b[2] - b[0]
+            th = b[3] - b[1]
+            draw.text((cx + dx - tw // 2, cy + dy - th // 2), text, fill=color, font=font_small)
+
         draw.text((lx, ly), pole_label, fill=color, font=font_main)
         draw.text((lx, ly + 22), pole_val, fill=color, font=font_small)
 
-    def _draw_panels(self, draw, height, data, color, font_main, font_small, bg, ox):
-        y_start = height - 175
-        panel_w = 280
-
+    def _draw_panels(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
+        x = ox + (6 if inside else 30)
         sep_text = f"SEP (w,\u03b4):  {data['sep']}"
         ssp_text = f"SSP (\u03bb,\u00df):  {data['ssp']}"
+        np_val = float(data["np"])
+        np_val_str = f"{np_val:.2f}"
 
-        for i, (field_text, np_show) in enumerate([
-            (sep_text, False),
-            (ssp_text, False),
-            (None, True)
-        ]):
-            y = y_start + i * 48
-            px = ox + 4
-            if bg:
-                draw.rectangle(
-                    (px, y, px + panel_w, y + 40),
-                    fill=bg, outline=color, width=1,
-                )
-            else:
-                draw.rectangle(
-                    (px, y, px + panel_w, y + 40),
-                    outline=color, width=1,
-                )
-            if np_show:
-                np_val = float(data["np"])
-                np_label = "NP:"
-                lx = ox + 10
-                if bg:
-                    self._text_bg(draw, lx, y + 2, np_label, font_main, bg)
-                draw.text((lx, y + 2), np_label, fill=color, font=font_main)
-                bar_x, bar_y = ox + 45, y + 6
-                bar_w, bar_h = 180, 14
-                if bg:
-                    draw.rectangle(
-                        (bar_x, bar_y, bar_x + bar_w, bar_y + bar_h),
-                        fill=bg, outline=color, width=1,
-                    )
-                else:
-                    draw.rectangle(
-                        (bar_x, bar_y, bar_x + bar_w, bar_y + bar_h),
-                        outline=color, width=1,
-                    )
-                fill_w = int(bar_w * (np_val - 0.5) / 0.5)
-                if fill_w > 0:
-                    draw.rectangle(
-                        (bar_x + 1, bar_y + 1, bar_x + fill_w - 1, bar_y + bar_h - 1),
-                        fill=color,
-                    )
-                np_val_str = f"{np_val:.2f}"
-                if bg:
-                    self._text_bg(draw, bar_x + bar_w + 8, bar_y + bar_h // 2 - 4, np_val_str, font_main, bg)
-                draw.text(
-                    (bar_x + bar_w + 8, bar_y + bar_h // 2 - 4),
-                    np_val_str, fill=color, font=font_main,
-                )
-            else:
-                if bg:
-                    self._text_bg(draw, ox + 10, y + 3, field_text, font_main, bg)
-                draw.text((ox + 10, y + 3), field_text, fill=color, font=font_main)
+        b_sep = draw.textbbox((0, 0), sep_text, font=font_main)
+        line_h = b_sep[3] - b_sep[1]
+        panel_h = line_h + 20
+        spacing = 6
 
-    def _draw_scale_bar(self, draw, width, height, data, color, font_main, font_small, bg, ox, oy):
-        arc_str = data["arc"]
+        sep_y = 0
+        ssp_y = panel_h + spacing
+        np_y = 2 * (panel_h + spacing)
 
-        bar_x = ox + width - 210
-        bar_y = oy + height - 35
-        bar_w = 170
-        bar_h = 8
+        total_h = np_y + panel_h
+        y_offset = oy + height - total_h - (6 if inside else 10)
 
         if bg:
             draw.rectangle(
-                (bar_x - 6, bar_y - 22, bar_x + bar_w + 6, bar_y + bar_h + 6),
-                fill=bg, outline=color, width=1,
+                (x - 4, y_offset + sep_y - 4, x + 310, y_offset + np_y + panel_h + 4),
+                fill=bg,
             )
 
-        draw.rectangle(
-            (bar_x, bar_y, bar_x + bar_w, bar_y + bar_h),
-            fill=None, outline=color, width=1,
-        )
+        draw.rectangle((x, y_offset + sep_y, x + 300, y_offset + sep_y + panel_h), outline=color, width=1)
+        draw.text((x + 8, y_offset + sep_y + 4), sep_text, fill=color, font=font_main)
 
+        draw.rectangle((x, y_offset + ssp_y, x + 300, y_offset + ssp_y + panel_h), outline=color, width=1)
+        draw.text((x + 8, y_offset + ssp_y + 4), ssp_text, fill=color, font=font_main)
+
+        draw.rectangle((x, y_offset + np_y, x + 300, y_offset + np_y + panel_h), outline=color, width=1)
+        draw.text((x + 8, y_offset + np_y + 4), "NP:", fill=color, font=font_main)
+
+        bar_x = x + 50
+        bar_y = y_offset + np_y + 7
+        bar_w = 180
+        bar_h = 12
+        draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), outline=color, width=1)
+        fill_w = int(bar_w * (np_val - 0.5) / 0.5)
+        if fill_w > 0:
+            draw.rectangle((bar_x + 1, bar_y + 1, bar_x + fill_w - 1, bar_y + bar_h - 1), fill=color)
+        draw.text((bar_x + bar_w + 8, bar_y + bar_h // 2 - line_h // 2), np_val_str, fill=color, font=font_main)
+
+    def _draw_scale_bar(self, draw, width, height, data, color, font_main, font_small, bg, ox, oy, inside):
+        arc_str = data["arc"]
+        label = f"arcsecond: {arc_str}"
+        bbox = draw.textbbox((0, 0), label, font=font_small)
+        tw = bbox[2] - bbox[0]
+
+        bar_w = 170
+        bar_h = 8
+        pad_right = 8 if inside else 10
+        bar_x = ox + width - bar_w - pad_right
+        bar_y = oy + height - (14 if inside else 30)
+        lx = bar_x + bar_w // 2 - tw // 2
+        ly = bar_y - 18
+
+        if bg:
+            bx = min(bar_x, lx) - 6
+            by = ly - 4
+            bw = max(bar_x + bar_w, lx + tw) - bx + 6
+            bh = (bar_y + bar_h + 4) - by
+            draw.rectangle((bx, by, bx + bw, by + bh), fill=bg)
+
+        draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), fill=None, outline=color, width=1)
         mid = bar_w // 2
         draw.line((bar_x + mid, bar_y - 4, bar_x + mid, bar_y + bar_h + 4), fill=color, width=1)
         draw.line((bar_x, bar_y - 2, bar_x, bar_y + bar_h + 2), fill=color, width=1)
         draw.line((bar_x + bar_w, bar_y - 2, bar_x + bar_w, bar_y + bar_h + 2), fill=color, width=1)
-
-        label = f"arcsecond: {arc_str}"
-        bbox = draw.textbbox((0, 0), label, font=font_small)
-        tw = bbox[2] - bbox[0]
-        lx = bar_x + bar_w // 2 - tw // 2
-        ly = bar_y - 18
-        if bg:
-            self._text_bg(draw, lx, ly, label, font_small, bg)
         draw.text((lx, ly), label, fill=color, font=font_small)
