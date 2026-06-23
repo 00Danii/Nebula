@@ -213,6 +213,7 @@ class RenderEngine:
         self.grid_renderer.show_on_image = dc["grid_show_on_image"]
 
         self.metadata_renderer.font_size_main = dc["meta_font_size"]
+        self.metadata_renderer.font_size_small = max(8, int(dc["meta_font_size"] * 0.75))
         self.metadata_renderer.style_id = dc["metadata_style"]
 
         image_rect = (offset_x, offset_y, disp_w, disp_h)
