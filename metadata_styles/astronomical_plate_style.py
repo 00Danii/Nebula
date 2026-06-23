@@ -94,8 +94,9 @@ class AstronomicalPlateMetadataStyle(BaseMetadataStyle):
         corner_info = f"ECJ2000  {data['arc']}"
         bbox = draw.textbbox((0, 0), corner_info, font=font_small)
         tw = bbox[2] - bbox[0]
+        ty = bbox[3] - bbox[1]
         cx = ox + width - tw - 22
-        cy = oy + height - 22
+        cy = oy + height - ty - 20
         if bg:
             self._text_bg(draw, cx, cy, corner_info, font_small, bg, pad_x=6, pad_y=4)
         self._draw_with_shadow(draw, cx, cy, corner_info, font_small, color, shadow)
