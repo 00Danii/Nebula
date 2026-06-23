@@ -35,7 +35,7 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
         self._draw_scale_bar(draw, w, h, data, color, font_main, font_small, bg, ox, oy, inside)
 
     def _draw_compass(self, draw, data, color, font_main, font_small, bg, ox, oy, inside):
-        x, y = ox + (8 if inside else 30), oy + (8 if inside else 30)
+        x, y = ox + (22 if inside else 30), oy + (12 if inside else 30)
         cx, cy = x + 30, y + 30
         r = 28
 
@@ -50,10 +50,10 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
         pole_th = b_pole_val[3] - b_pole_val[1]
 
         if bg:
-            group_x = min(cx - r, lx) - 6
-            group_y = min(cy - r, y) - 6
+            group_x = min(cx - r, lx) - 20
+            group_y = min(cy - r, y) - 10
             group_w = max(cx + r, lx + text_w) - group_x + 12
-            group_h = max(cy + r, ly + 22 + pole_th) - group_y + 8
+            group_h = max(cy + r, ly + 22 + pole_th) - group_y + 8 + 15
             draw.rectangle((group_x, group_y, group_x + group_w, group_y + group_h), fill=bg)
 
         draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=color, width=1)
@@ -66,8 +66,8 @@ class ScientificHUDMetadataStyle(BaseMetadataStyle):
             th = b[3] - b[1]
             draw.text((cx + dx - tw // 2, cy + dy - th // 2), text, fill=color, font=font_small)
 
-        draw.text((lx, ly), pole_label, fill=color, font=font_main)
-        draw.text((lx, ly + 22), pole_val, fill=color, font=font_small)
+        draw.text((lx, ly + 10), pole_label, fill=color, font=font_main)
+        draw.text((lx, ly + 32), pole_val, fill=color, font=font_small)
 
     def _draw_panels(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
         x = ox + (6 if inside else 30)
