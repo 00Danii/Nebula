@@ -30,20 +30,20 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         ox, oy = self._img_offset(image_rect, 0, 0) if inside else (0, 0)
         bg = self._blend_bg(bg_color) if bg_color else None
 
-        self._draw_pole(draw, data, color, font_main, font_small, bg, ox, oy)
-        self._draw_bottom_left(draw, h, data, color, font_main, font_small, bg, ox, oy)
-        self._draw_arcseconds(draw, w, h, data, color, font_main, bg, ox, oy)
+        self._draw_pole(draw, data, color, font_main, font_small, bg, ox, oy, inside)
+        self._draw_bottom_left(draw, h, data, color, font_main, font_small, bg, ox, oy, inside)
+        self._draw_arcseconds(draw, w, h, data, color, font_main, bg, ox, oy, inside)
 
-    def _draw_pole(self, draw, data, color, font_main, font_small, bg, ox, oy):
-        x, y = ox + 10, oy + 10
+    def _draw_pole(self, draw, data, color, font_main, font_small, bg, ox, oy, inside):
+        x, y = ox + (6 if inside else 30), oy + (5 if inside else 30)
         self._text_bg(draw, x, y, "Pole (ECJ2000):", font_main, bg)
         draw.text((x, y), "Pole (ECJ2000):", fill=color, font=font_main)
         self._text_bg(draw, x, y + 25, f"{data['pole']}", font_small, bg)
         draw.text((x, y + 25), f"{data['pole']}", fill=color, font=font_small)
 
-    def _draw_bottom_left(self, draw, height, data, color, font_main, font_small, bg, ox, oy):
+    def _draw_bottom_left(self, draw, height, data, color, font_main, font_small, bg, ox, oy, inside):
         y_offset = oy + height - 130
-        x = ox + 10
+        x = ox + (6 if inside else 30)
         self._text_bg(draw, x, y_offset, "SEP (w,\u03b4):", font_main, bg)
         draw.text((x, y_offset), "SEP (w,\u03b4):", fill=color, font=font_main)
         sep_val = f"{data['sep']}"
@@ -62,11 +62,12 @@ class MinimalMetadataStyle(BaseMetadataStyle):
         self._text_bg(draw, x + 35, y_offset + 98, np_val, font_main, bg)
         draw.text((x + 35, y_offset + 98), np_val, fill=color, font=font_main)
 
-    def _draw_arcseconds(self, draw, width, height, data, color, font_main, bg, ox, oy):
+    def _draw_arcseconds(self, draw, width, height, data, color, font_main, bg, ox, oy, inside):
         label = f"arcsecond: {data['arc']}"
         bbox = draw.textbbox((0, 0), label, font=font_main)
         tw = bbox[2] - bbox[0]
-        x = ox + width - tw - 10
-        y = oy + height - 30
+        ty = bbox[3] - bbox[1]
+        x = ox + width - tw - (6 if inside else 10)
+        y = oy + height - (ty + 5 if inside else 30)
         self._text_bg(draw, x, y, label, font_main, bg)
         draw.text((x, y), label, fill=color, font=font_main)
