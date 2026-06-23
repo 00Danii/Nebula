@@ -59,8 +59,12 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         draw.line((cx, cy - 8, cx, cy + 8), fill=color, width=2)
 
         pole = data["pole"]
-        px = cx - cr + 6
-        py = cy - cr - 16
+        if inside:
+            px = ox + 6
+            py = oy + 5
+        else:
+            px = cx - cr + 6
+            py = cy - cr - 16
         if bg:
             self._text_bg(draw, px, py, pole, font_small, bg)
         draw.text((px, py), pole, fill=color, font=font_small)
