@@ -21,7 +21,7 @@ class RenderEngine:
 
         self.canvas_size: tuple[int, int] = (1024, 1024)
         self.margin: int = 80
-        self.current_style_id: str = "sepia"
+        self.current_style_id: str = "alien_signal"
         self._original_image: Image.Image | None = None
 
         self._adjustments: dict[str, float] = {
@@ -152,7 +152,7 @@ class RenderEngine:
         "grid_line_width": 1,
         "grid_show_on_image": False,
         "show_metadata": True,
-        "metadata_style": "minimal",
+        "metadata_style": "alien_hud",
         "metadata_inside": False,
     }
 

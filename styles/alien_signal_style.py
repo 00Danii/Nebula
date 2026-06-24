@@ -15,10 +15,10 @@ class AlienSignalStyle(BaseStyle):
 
     def __init__(self):
         super().__init__()
-        self._background_color = (8, 18, 30)
+        self._background_color = (0, 0, 0)
         self._palette = {
-            "text": (0, 255, 190),
-            "grid": (0, 200, 140),
+            "text": (255, 255, 255),
+            "grid": (255, 255, 255),
             "accent": (255, 0, 180),
         }
         self._interference: int = 30
