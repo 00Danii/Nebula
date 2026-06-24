@@ -60,10 +60,16 @@ class AstronomicalPlateMetadataStyle(BaseMetadataStyle):
             max(0, color[2] - 60),
         )
 
+        pole_parts = data["pole"].split(", ")
+        sep_parts = data["sep"].split(", ")
+        ssp_parts = data["ssp"].split(", ")
         lines = [
-            (f"PLT: {data['pole']}", font_small),
-            (f"SEP: {data['sep']}", font_small),
-            (f"SSP: {data['ssp']}", font_small),
+            (f"PLT: {pole_parts[0]}", font_small),
+            (pole_parts[1], font_small),
+            (f"SEP: {sep_parts[0]}", font_small),
+            (sep_parts[1], font_small),
+            (f"SSP: {ssp_parts[0]}", font_small),
+            (ssp_parts[1], font_small),
             (f"NP:  {data['np']}", font_main),
             (f"RES: {data['arc']}", font_small),
         ]
