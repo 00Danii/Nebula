@@ -667,10 +667,6 @@ class DarkCombobox(tk.Frame):
         self._popup.overrideredirect(True)
         self._popup.configure(bg=th.BORDER)
 
-        x = self.winfo_rootx()
-        y = self.winfo_rooty() + self.winfo_height()
-        self._popup.geometry(f"+{x}+{y}")
-
         list_frame = tk.Frame(self._popup, bg=th.BG_DARK)
         list_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -704,6 +700,21 @@ class DarkCombobox(tk.Frame):
         self._listbox.bind("<Enter>", lambda e: self._cancel_close())
 
         self._popup.bind("<FocusOut>", lambda e: self._close_popup())
+
+        self._popup.update_idletasks()
+
+        x = self.winfo_rootx()
+        y_below = self.winfo_rooty() + self.winfo_height()
+        popup_h = self._popup.winfo_reqheight()
+        screen_h = self.winfo_screenheight()
+
+        if y_below + popup_h <= screen_h:
+            y = y_below
+        else:
+            y_above = self.winfo_rooty() - popup_h
+            y = y_above if y_above >= 0 else y_below
+
+        self._popup.geometry(f"+{x}+{y}")
         self._popup.focus_set()
 
         self._popup_open = True
