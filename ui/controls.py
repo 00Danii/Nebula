@@ -69,7 +69,6 @@ class AdjustmentSlider(tk.Frame):
                  value_label: str, on_change, **kwargs):
         super().__init__(parent, bg=th.BG_DARK, **kwargs)
         self._on_change = on_change
-        self._value_label_fmt = value_label
 
         row = tk.Frame(self, bg=th.BG_DARK)
         row.pack(fill=tk.X, padx=8, pady=1)
@@ -80,7 +79,7 @@ class AdjustmentSlider(tk.Frame):
 
         self._var = tk.DoubleVar(value=initial)
         slider = tk.Scale(row, from_=from_, to=to, orient=tk.HORIZONTAL,
-                          variable=self._var, showvalue=False,
+                          variable=self._var, showvalue=True,
                           resolution=resolution,
                           width=10, length=140,
                           bg=th.BG_DARK, fg=th.FG, troughcolor=th.SLIDER_TROUGH,
@@ -88,25 +87,13 @@ class AdjustmentSlider(tk.Frame):
                           bd=0, sliderrelief=tk.FLAT)
         slider.pack(side=tk.LEFT, padx=(4, 4), expand=True, fill=tk.X)
 
-        self._val_label = tk.Label(row, text=value_label % initial,
-                                   font=(th.FONT_FAMILY, 9),
-                                   bg=th.BG_DARK, fg=th.FG_DIM, anchor="e", width=6)
-        self._val_label.pack(side=tk.RIGHT)
-
         slider.bind("<ButtonRelease-1>", lambda e: self._notify())
-        slider.bind("<Motion>", lambda e: self._update_label())
-
-    def _update_label(self):
-        val = self._var.get()
-        self._val_label.config(text=self._value_label_fmt % val)
 
     def _notify(self):
-        self._update_label()
         self._on_change(self._var.get())
 
     def set_value(self, value: float):
         self._var.set(value)
-        self._update_label()
 
 class DarkColorPicker(tk.Toplevel):
     FIELD_SIZE = 200
