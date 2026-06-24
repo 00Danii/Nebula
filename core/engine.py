@@ -53,13 +53,13 @@ class RenderEngine:
                 sid: styles.get(sid).get_style_params() if styles.get(sid) else {}
                 for sid in ["sepia","crt","thermal","noir","cyberpunk","vaporwave",
                             "gold","ice","pastel","muted","invert","neon","duotone",
-                            "tritone","custom"]
+                            "tritone","custom","alien_signal"]
             },
             "style_colors": {
                 sid: styles.get(sid).get_editable_colors() if styles.get(sid) else {}
                 for sid in ["sepia","crt","thermal","noir","cyberpunk","vaporwave",
                             "gold","ice","pastel","muted","invert","neon","duotone",
-                            "tritone","custom"]
+                            "tritone","custom","alien_signal"]
             },
         }
         if self._history_idx < len(self._history) - 1:

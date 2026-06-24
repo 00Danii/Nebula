@@ -3,6 +3,7 @@ from metadata_styles.minimal_style import MinimalMetadataStyle
 from metadata_styles.scientific_hud_style import ScientificHUDMetadataStyle
 from metadata_styles.astronomical_plate_style import AstronomicalPlateMetadataStyle
 from metadata_styles.geometric_style import GeometricMetadataStyle
+from metadata_styles.alien_hud_style import AlienHUDMetadataStyle
 
 
 class MetadataStyleManager:
@@ -15,6 +16,7 @@ class MetadataStyleManager:
         self.register(ScientificHUDMetadataStyle())
         self.register(AstronomicalPlateMetadataStyle())
         self.register(GeometricMetadataStyle())
+        self.register(AlienHUDMetadataStyle())
 
     def register(self, style: BaseMetadataStyle):
         self._styles[style.id] = style

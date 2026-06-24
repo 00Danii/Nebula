@@ -9,6 +9,7 @@ from styles.creative_styles import (
     TritoneStyle,
 )
 from styles.custom_style import CustomStyle
+from styles.alien_signal_style import AlienSignalStyle
 
 
 class StyleManager:
@@ -32,6 +33,7 @@ class StyleManager:
         self.register(DuotoneStyle())
         self.register(TritoneStyle())
         self.register(CustomStyle())
+        self.register(AlienSignalStyle())
 
     def register(self, style: BaseStyle):
         self._styles[style.id] = style

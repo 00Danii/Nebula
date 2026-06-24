@@ -7,4 +7,5 @@ from styles.creative_styles import (
     CyberpunkStyle, VaporwaveStyle, GoldStyle, IceStyle,
     PastelStyle, MutedStyle, InvertStyle, NeonStyle, DuotoneStyle,
 )
+from styles.alien_signal_style import AlienSignalStyle
 from styles.style_manager import StyleManager
