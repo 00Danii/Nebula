@@ -12,11 +12,11 @@ class MetadataStyleManager:
         self._register_defaults()
 
     def _register_defaults(self):
+        self.register(AlienHUDMetadataStyle())
         self.register(MinimalMetadataStyle())
         self.register(ScientificHUDMetadataStyle())
         self.register(AstronomicalPlateMetadataStyle())
         self.register(GeometricMetadataStyle())
-        self.register(AlienHUDMetadataStyle())
 
     def register(self, style: BaseMetadataStyle):
         self._styles[style.id] = style
