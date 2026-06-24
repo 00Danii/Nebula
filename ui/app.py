@@ -20,6 +20,8 @@ class App(tk.Tk):
         self._build_layout()
         self._bind_shortcuts()
 
+        self.after_idle(self._controls.load_default_image)
+
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _build_titlebar(self):

@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 
 import ui.theme as th
 from core.engine import RenderEngine
+from utils import resource_path
 
 
 class ModernButton(tk.Button):
@@ -1240,6 +1241,13 @@ class ControlsPanel(tk.Frame):
         if self._image_path:
             self._render()
 
+    def _load_default_image(self):
+        default_path = resource_path(os.path.join("assets", "Nebula.png"))
+        if os.path.exists(default_path):
+            self._image_path = default_path
+            self._update_status("Nebula.png cargada")
+            self._render()
+
     def _load_image(self):
         path = filedialog.askopenfilename(
             title="Seleccionar imagen",
@@ -1312,6 +1320,9 @@ class ControlsPanel(tk.Frame):
 
     def load_image(self):
         self._load_image()
+
+    def load_default_image(self):
+        self._load_default_image()
 
     def save_image(self):
         self._save_image()
