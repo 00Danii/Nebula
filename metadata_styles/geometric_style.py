@@ -77,21 +77,27 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         np_tw = b_np[2] - b_np[0]
         np_th = b_np[3] - b_np[1]
 
-        arc_block_h = 2 * r_arc + 24 + 2 * th_small + 8
+        sep_block_h = r_dial + 40 + 3 * th_small + 12
         dial_block_h = r_dial + 40 + np_th
         spacing = 6
 
-        total_h = arc_block_h + spacing + arc_block_h + spacing + dial_block_h
+        total_h = sep_block_h + spacing + sep_block_h + spacing + dial_block_h
         y_offset = height - total_h - 10
 
-        arc_cy = y_offset + r_arc
-        ssp_cy = arc_cy + arc_block_h + spacing
-        row_cy = ssp_cy + arc_block_h + spacing - r_arc + r_dial
+        sep_cy = y_offset + r_dial
+        ssp_cy = sep_cy + sep_block_h + spacing
+        np_cy = ssp_cy + sep_block_h + spacing
 
         for i, (label, key) in enumerate([("SEP", "sep"), ("SSP", "ssp")]):
             parts = data[key].split(", ")
-            arc_cx = x_left + r_arc
-            cy_pos = arc_cy if i == 0 else ssp_cy
+            dial_cx = x_left + r_dial
+            cy_pos = sep_cy if i == 0 else ssp_cy
+
+            val_str = parts[1].split("=")[1].replace("°", "")
+            if key == "sep":
+                dial_val = (float(val_str) + 20) / 40
+            else:
+                dial_val = (float(val_str) + 90) / 180
 
             b_lbl = draw.textbbox((0, 0), f"{label}:", font=font_small)
             text_w = b_lbl[2] - b_lbl[0]
@@ -101,46 +107,58 @@ class GeometricMetadataStyle(BaseMetadataStyle):
 
             if bg:
                 draw.rectangle(
-                    (arc_cx - r_arc - 10, cy_pos - r_arc - 10, arc_cx + r_arc + 16, cy_pos + r_arc + 24 + 2 * th_small + 12),
+                    (dial_cx - max(r_dial + 10, text_w // 2 + 10), cy_pos - r_dial - 10, dial_cx + max(r_dial + 10, text_w // 2 + 10), cy_pos + 40 + 3 * th_small + 16),
                     fill=bg,
                 )
 
-            draw.arc((arc_cx - r_arc, cy_pos - r_arc, arc_cx + r_arc, cy_pos + r_arc), start=0, end=180, fill=color, width=2)
-            draw.line((arc_cx - r_arc, cy_pos, arc_cx + r_arc, cy_pos), fill=color, width=1)
-            mid_rad = math.radians(90)
-            mx = arc_cx + r_arc * math.cos(mid_rad)
-            my = cy_pos - r_arc * math.sin(mid_rad)
-            draw.line((arc_cx, cy_pos, mx, my), fill=color, width=2)
-            draw.text((arc_cx - text_w // 2, cy_pos + r_arc + 8), f"{label}:", fill=color, font=font_small)
+            draw.arc((dial_cx - r_dial, cy_pos - r_dial, dial_cx + r_dial, cy_pos + r_dial), start=0, end=180, fill=color, width=3)
+            draw.line((dial_cx - r_dial, cy_pos, dial_cx + r_dial, cy_pos), fill=color, width=1)
+
+            for tick_val in [0.25, 0.5, 0.75]:
+                a = 180 * tick_val
+                rad = math.radians(180 - a)
+                tk_x = dial_cx + (r_dial - 4) * math.cos(rad)
+                tk_y = cy_pos - (r_dial - 4) * math.sin(rad)
+                tk_x2 = dial_cx + (r_dial - 10) * math.cos(rad)
+                tk_y2 = cy_pos - (r_dial - 10) * math.sin(rad)
+                draw.line((tk_x, tk_y, tk_x2, tk_y2), fill=color, width=1)
+
+            angle = 180 * dial_val
+            rad = math.radians(180 - angle)
+            nx = dial_cx + (r_dial - 4) * math.cos(rad)
+            ny = cy_pos - (r_dial - 4) * math.sin(rad)
+            draw.line((dial_cx, cy_pos, nx, ny), fill=color, width=2)
+
+            draw.text((dial_cx - text_w // 2, cy_pos + 40), f"{label}:", fill=color, font=font_small)
             for j, p in enumerate(parts):
-                draw.text((arc_cx - text_w // 2, cy_pos + r_arc + 24 + j * (th_small + 4)), p, fill=color, font=font_small)
+                draw.text((dial_cx - text_w // 2, cy_pos + 40 + (j + 1) * (th_small + 4)), p, fill=color, font=font_small)
 
         dial_cx = x_left + r_dial
         if bg:
             draw.rectangle(
-                (dial_cx - r_dial - 10, row_cy - r_dial - 10, dial_cx + max(r_dial + 10, np_tw // 2 + 10), row_cy + 40 + np_th + 4),
+                (dial_cx - r_dial - 10, np_cy - r_dial - 10, dial_cx + max(r_dial + 10, np_tw // 2 + 10), np_cy + 40 + np_th + 4),
                 fill=bg,
             )
 
-        draw.arc((dial_cx - r_dial, row_cy - r_dial, dial_cx + r_dial, row_cy + r_dial), start=0, end=180, fill=color, width=3)
-        draw.line((dial_cx - r_dial, row_cy, dial_cx + r_dial, row_cy), fill=color, width=1)
+        draw.arc((dial_cx - r_dial, np_cy - r_dial, dial_cx + r_dial, np_cy + r_dial), start=0, end=180, fill=color, width=3)
+        draw.line((dial_cx - r_dial, np_cy, dial_cx + r_dial, np_cy), fill=color, width=1)
 
         for val in [0.5, 0.75, 1.0]:
             a = 180 * (val - 0.5) / 0.5
             rad = math.radians(180 - a)
             tk_x = dial_cx + (r_dial - 4) * math.cos(rad)
-            tk_y = row_cy - (r_dial - 4) * math.sin(rad)
+            tk_y = np_cy - (r_dial - 4) * math.sin(rad)
             tk_x2 = dial_cx + (r_dial - 10) * math.cos(rad)
-            tk_y2 = row_cy - (r_dial - 10) * math.sin(rad)
+            tk_y2 = np_cy - (r_dial - 10) * math.sin(rad)
             draw.line((tk_x, tk_y, tk_x2, tk_y2), fill=color, width=1)
 
         np_val = float(data["np"])
         angle = 180 * (np_val - 0.5) / 0.5
         rad = math.radians(180 - angle)
         nx = dial_cx + (r_dial - 4) * math.cos(rad)
-        ny = row_cy - (r_dial - 4) * math.sin(rad)
-        draw.line((dial_cx, row_cy, nx, ny), fill=color, width=2)
-        draw.text((dial_cx - np_tw // 2, row_cy + 40), np_text, fill=color, font=font_small)
+        ny = np_cy - (r_dial - 4) * math.sin(rad)
+        draw.line((dial_cx, np_cy, nx, ny), fill=color, width=2)
+        draw.text((dial_cx - np_tw // 2, np_cy + 40), np_text, fill=color, font=font_small)
 
         self._draw_tick_marks(draw, width, height, data, color, font_small, bg, 0, 0, False)
 
@@ -197,7 +215,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         b_small = draw.textbbox((0, 0), "Tg", font=font_small)
         th = b_small[3] - b_small[1]
 
-        arc_row_h = 2 * r_arc + (8 + th if inside else 24 + 2 * th + 8)
+        arc_row_h = r_dial + 40 + 3 * th + 12
         np_text = f"NP {data['np']}"
         b_np = draw.textbbox((0, 0), np_text, font=font_small)
         np_tw = b_np[2] - b_np[0]
@@ -211,12 +229,18 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         else:
             total_h = arc_row_h
             y_offset = oy + height - total_h - 10
-            row_cy = y_offset + r_arc
+            row_cy = y_offset + r_dial
 
         if not inside:
             for i, (label, key) in enumerate([("SEP", "sep"), ("SSP", "ssp")]):
-                arc_cx = x + gap * i + r_arc
+                dial_cx = x + gap * i + r_dial
                 parts = data[key].split(", ")
+
+                val_str = parts[1].split("=")[1].replace("°", "")
+                if key == "sep":
+                    dial_val = (float(val_str) + 20) / 40
+                else:
+                    dial_val = (float(val_str) + 90) / 180
 
                 b_lbl = draw.textbbox((0, 0), f"{label}:", font=font_small)
                 text_w = b_lbl[2] - b_lbl[0]
@@ -226,19 +250,31 @@ class GeometricMetadataStyle(BaseMetadataStyle):
 
                 if bg:
                     draw.rectangle(
-                        (arc_cx - r_arc - 10, row_cy - r_arc - 10, arc_cx + r_arc + 16, row_cy + r_arc + 24 + 2 * th + 12),
+                        (dial_cx - max(r_dial + 10, text_w // 2 + 10), row_cy - r_dial - 10, dial_cx + max(r_dial + 10, text_w // 2 + 10), row_cy + 40 + 3 * th + 16),
                         fill=bg,
                     )
 
-                draw.arc((arc_cx - r_arc, row_cy - r_arc, arc_cx + r_arc, row_cy + r_arc), start=0, end=180, fill=color, width=2)
-                draw.line((arc_cx - r_arc, row_cy, arc_cx + r_arc, row_cy), fill=color, width=1)
-                mid_rad = math.radians(90)
-                mx = arc_cx + r_arc * math.cos(mid_rad)
-                my = row_cy - r_arc * math.sin(mid_rad)
-                draw.line((arc_cx, row_cy, mx, my), fill=color, width=2)
-                draw.text((arc_cx - text_w // 2, row_cy + r_arc + 8), f"{label}:", fill=color, font=font_small)
+                draw.arc((dial_cx - r_dial, row_cy - r_dial, dial_cx + r_dial, row_cy + r_dial), start=0, end=180, fill=color, width=3)
+                draw.line((dial_cx - r_dial, row_cy, dial_cx + r_dial, row_cy), fill=color, width=1)
+
+                for tick_val in [0.25, 0.5, 0.75]:
+                    a = 180 * tick_val
+                    rad = math.radians(180 - a)
+                    tk_x = dial_cx + (r_dial - 4) * math.cos(rad)
+                    tk_y = row_cy - (r_dial - 4) * math.sin(rad)
+                    tk_x2 = dial_cx + (r_dial - 10) * math.cos(rad)
+                    tk_y2 = row_cy - (r_dial - 10) * math.sin(rad)
+                    draw.line((tk_x, tk_y, tk_x2, tk_y2), fill=color, width=1)
+
+                angle = 180 * dial_val
+                rad = math.radians(180 - angle)
+                nx = dial_cx + (r_dial - 4) * math.cos(rad)
+                ny = row_cy - (r_dial - 4) * math.sin(rad)
+                draw.line((dial_cx, row_cy, nx, ny), fill=color, width=2)
+
+                draw.text((dial_cx - text_w // 2, row_cy + 40), f"{label}:", fill=color, font=font_small)
                 for j, p in enumerate(parts):
-                    draw.text((arc_cx - text_w // 2, row_cy + r_arc + 24 + j * (th + 4)), p, fill=color, font=font_small)
+                    draw.text((dial_cx - text_w // 2, row_cy + 40 + (j + 1) * (th + 4)), p, fill=color, font=font_small)
 
         dial_cx = x + r_dial if inside else x + 2 * gap + r_dial
 
