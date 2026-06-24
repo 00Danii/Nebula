@@ -77,7 +77,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         np_tw = b_np[2] - b_np[0]
         np_th = b_np[3] - b_np[1]
 
-        arc_block_h = 2 * r_arc + 24 + 2 * th_small + 4
+        arc_block_h = 2 * r_arc + 24 + 2 * th_small + 8
         dial_block_h = r_dial + 40 + np_th
         spacing = 6
 
@@ -101,7 +101,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
 
             if bg:
                 draw.rectangle(
-                    (arc_cx - r_arc - 10, cy_pos - r_arc - 10, arc_cx + r_arc + 16, cy_pos + r_arc + 24 + 2 * th_small + 8),
+                    (arc_cx - r_arc - 10, cy_pos - r_arc - 10, arc_cx + r_arc + 16, cy_pos + r_arc + 24 + 2 * th_small + 12),
                     fill=bg,
                 )
 
@@ -197,7 +197,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
         b_small = draw.textbbox((0, 0), "Tg", font=font_small)
         th = b_small[3] - b_small[1]
 
-        arc_row_h = 2 * r_arc + (8 + th if inside else 24 + 2 * th + 4)
+        arc_row_h = 2 * r_arc + (8 + th if inside else 24 + 2 * th + 8)
         np_text = f"NP {data['np']}"
         b_np = draw.textbbox((0, 0), np_text, font=font_small)
         np_tw = b_np[2] - b_np[0]
@@ -226,7 +226,7 @@ class GeometricMetadataStyle(BaseMetadataStyle):
 
                 if bg:
                     draw.rectangle(
-                        (arc_cx - r_arc - 10, row_cy - r_arc - 10, arc_cx + r_arc + 16, row_cy + r_arc + 24 + 2 * th + 8),
+                        (arc_cx - r_arc - 10, row_cy - r_arc - 10, arc_cx + r_arc + 16, row_cy + r_arc + 24 + 2 * th + 12),
                         fill=bg,
                     )
 
