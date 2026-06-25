@@ -354,17 +354,27 @@ Personalizado
 ### HUD Alienigena (`alien_hud`)
 > Panel HUD sci-fi con soportes de esquina, barrido de radar, barra de frecuencia, panel de datos decodificados.
 
+![HUD Alienígena](assets/examples/meta_alien_hud.png)
+
 ### Minimal (`minimal`)
 > Solo texto limpio: coordenadas polares, valores SEP/SSP/NP, etiqueta de arcosegundo.
+
+![Minimal](assets/examples/meta_minimal.png)
 
 ### HUD Cientifico (`scientific_hud`)
 > Paneles de instrumentos con recuadros, rosa de los vientos, barra de progreso NP, barra de escala.
 
+![HUD Científico](assets/examples/meta_scientific_hud.png)
+
 ### Placa Astronomica (`astronomical_plate`)
 > Look de placa fotográfica vintage con marcas fiduciales, texto grabado con sombras.
 
+![Placa Astronómica](assets/examples/meta_astronomical_plate.png)
+
 ### Geometrico (`geometric`)
 > Superposición de retícula con indicadores de dial semicirculares para SEP/SSP/NP, barra de escala con marcas.
+
+![Geométrico](assets/examples/meta_geometric.png)
 
 ---
 

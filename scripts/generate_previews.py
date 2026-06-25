@@ -28,9 +28,16 @@ STYLES = [
     ("custom", "Custom"),
 ]
 
+META_STYLES = [
+    ("alien_hud", "HUD Alienígena"),
+    ("minimal", "Minimal"),
+    ("scientific_hud", "HUD Científico"),
+    ("astronomical_plate", "Placa Astronómica"),
+    ("geometric", "Geométrico"),
+]
+
 engine = RenderEngine()
 engine.set_display_config("show_metadata", True)
-engine.set_display_config("metadata_style", "minimal")
 engine.set_display_config("grid_num_lines", 6)
 engine.set_display_config("font_size_main", 18)
 engine.set_display_config("font_size_small", 15)
@@ -39,9 +46,24 @@ engine.set_display_config("meta_font_size", 14)
 for style_id, style_name in STYLES:
     print(f"Rendering {style_name}...")
     engine.set_style(style_id)
+    engine.set_display_config("metadata_style", "minimal")
     try:
         result = engine.render(SUBJECT_PATH)
         filename = f"{style_id}.png"
+        filepath = os.path.join(OUTPUT_DIR, filename)
+        result.save(filepath)
+        print(f"  -> saved {filepath}")
+    except Exception as e:
+        print(f"  -> ERROR: {e}")
+
+print("---")
+for meta_id, meta_name in META_STYLES:
+    print(f"Rendering metadata style {meta_name}...")
+    engine.set_style("muted")
+    engine.set_display_config("metadata_style", meta_id)
+    try:
+        result = engine.render(SUBJECT_PATH)
+        filename = f"meta_{meta_id}.png"
         filepath = os.path.join(OUTPUT_DIR, filename)
         result.save(filepath)
         print(f"  -> saved {filepath}")
