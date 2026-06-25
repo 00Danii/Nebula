@@ -74,6 +74,8 @@ O ejecutando `ejecutar.bat` en Windows.
 ### Sepia (`sepia`)
 Analisis Sepia Desaturado y Polvoriento
 
+![Sepia](assets/examples/sepia.png)
+
 **Algoritmo:** Escala de grises + tinte sepia.
 
 ```math
@@ -87,6 +89,8 @@ Donde $`i`$ es la intensidad y $`t`$ el color sepia configurable.
 
 ### CRT (`crt`)
 Visualizacion CRT Analogica Retro
+
+![CRT](assets/examples/crt.png)
 
 **Algoritmo:** Corrección gamma, fósforo monocromo o color, scanlines, bloom y distorsión barrel.
 
@@ -113,6 +117,8 @@ s = 1 + k \cdot r^2, \quad
 ### Thermal (`thermal`)
 Escaner de Vision Termica o Espectral
 
+![Thermal](assets/examples/thermal.png)
+
 **Algoritmo:** Mapeo de grises a paleta de color mediante LUT de 4 segmentos piecewise-linear.
 
 ```math
@@ -132,6 +138,8 @@ También soporta colormaps de OpenCV: `COLORMAP_INFERNO`, `PLASMA`, `VIRIDIS`, `
 ### Noir (`noir`)
 Cine Noir
 
+![Noir](assets/examples/noir.png)
+
 **Algoritmo:** Contraste gain-offset, tinte monocromo, grano y viñeta.
 
 ```math
@@ -147,6 +155,8 @@ Donde $`c`$ es contraste y $`b`$ brillo. Tinte por canal:
 
 ### Cyberpunk (`cyberpunk`)
 Cyberpunk Neon
+
+![Cyberpunk](assets/examples/cyberpunk.png)
 
 **Algoritmo:** Matriz de mezcla RGB + bloom + scanlines + viñeta.
 
@@ -167,6 +177,8 @@ m = g > P_{100-t}, \quad bloom = \text{GaussianBlur}(img \cdot m), \quad resulta
 ### Vaporwave (`vaporwave`)
 Vaporwave Retro
 
+![Vaporwave](assets/examples/vaporwave.png)
+
 **Algoritmo:** Síntesis rosa/cian desde gris + bloom + fade desaturación + viñeta.
 
 **Síntesis de canales:**
@@ -182,6 +194,8 @@ B' = \text{clip}(g \cdot 0.7 + 40, \, 0, 255)
 
 ### Gold (`gold`)
 Dorado Metalico
+
+![Gold](assets/examples/gold.png)
 
 **Algoritmo:** Tono dorado/plateado + mapa de brillo metálico (sheen) + destellos aleatorios.
 
@@ -199,6 +213,8 @@ s = \text{clip}((\text{randn} \cdot 0.15 + g/255 \cdot 0.5 + 0.3 - 0.5) \cdot 2,
 ### Ice (`ice`)
 Hielo Azul
 
+![Ice](assets/examples/ice.png)
+
 **Algoritmo:** Tono cian/violeta + textura de escarcha + destellos de hielo.
 
 **Interpolación de tono:** $`t = cyan \cdot (1-\tau) + purple \cdot \tau`$
@@ -210,6 +226,8 @@ Hielo Azul
 ### Pastel (`pastel`)
 Pastel Suave
 
+![Pastel](assets/examples/pastel.png)
+
 **Algoritmo:** Tono cálido/frío + reducción de saturación + glow difuso.
 
 **Desaturación:** $`resultado = resultado \cdot s + gris \cdot (1-s)`$
@@ -220,6 +238,8 @@ Pastel Suave
 
 ### Muted (`muted`)
 Fotografia Mate
+
+![Muted](assets/examples/muted.png)
 
 **Algoritmo:** Fade a gris + contraste + temperatura + grano.
 
@@ -234,6 +254,8 @@ Fotografia Mate
 ### Invert (`invert`)
 Negativo
 
+![Invert](assets/examples/invert.png)
+
 **Algoritmo:** 4 modos de inversión.
 
 - **Completo:** $`RGB' = 255 - RGB`$
@@ -245,6 +267,8 @@ Negativo
 
 ### Neon (`neon`)
 Neon Brillante
+
+![Neon](assets/examples/neon.png)
 
 **Algoritmo:** Mapeo dual-color por luminancia + bloom.
 
@@ -261,6 +285,8 @@ RGB' = \text{clip}(g^2 \cdot color \cdot i + RGB \cdot (1-i), \, 0, 255)
 ### Duotone (`duotone`)
 Duotono
 
+![Duotone](assets/examples/duotone.png)
+
 **Algoritmo:** Curva de potencia sobre grises + gradiente bicolor.
 
 **Mapeo de balance:** $`\displaystyle e = \max\left(0.1, \frac{100 - balance}{50}\right)`$, $`g' = g^e`$
@@ -271,6 +297,8 @@ Duotono
 
 ### Tritone (`tritone`)
 Tritono
+
+![Tritone](assets/examples/tritone.png)
 
 **Algoritmo:** Gradient piecewise-linear de 3 colores sobre grises.
 
@@ -287,6 +315,8 @@ RGB' = \begin{cases}
 
 ### Alien Signal (`alien_signal`)
 Transmision Alienigena
+
+![Alien Signal](assets/examples/alien_signal.png)
 
 **Algoritmo:** Matriz de deriva de color + aberración cromática + bandas de interferencia + scanlines + resplandor alienígena.
 
@@ -307,6 +337,8 @@ $`R' = \text{roll}(R, +s)`$, $`B' = \text{roll}(B, -s)`$
 
 ### Custom (`custom`)
 Personalizado
+
+![Custom](assets/examples/custom.png)
 
 **Algoritmo:** Pipeline multietapa secuencial.
 
