@@ -10,6 +10,12 @@
 
 Nébula es un editor de imágenes con estilo de instrumento científico/astronómico. Aplica filtros creativos, superposiciones de cuadrícula tipo telescopio y metadatos simulados (coordenadas polares, separación angular, parámetros espectrales) para transformar imágenes en visualizaciones de aspecto técnico-profesional.
 
+<p align="center">
+  <a href="https://github.com/00Danii/Nebula/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/Descargar-N%C3%A9bula%20v1.0.0-blue?style=for-the-badge" alt="Descargar Nébula v1.0.0"/>
+  </a>
+</p>
+
 ---
 
 ## Características
@@ -387,9 +393,9 @@ Personalizado
 
 ---
 
-## 📄 Licencia
+## Licencia
 
-Este proyecto no especifica una licencia. Todos los derechos reservados.
+© 2026 [00Danii](https://www.instagram.com/http.00danii/). Todos los derechos reservados.
 
 ---
 
