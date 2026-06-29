@@ -1,11 +1,14 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
 import ui.theme as th
 from core.engine import RenderEngine
 from utils import resource_path
+from animations.animation_engine import (
+    Keyframe, AnimationClip, render_animation, export_video, export_gif,
+)
 
 
 class ModernButton(tk.Button):
@@ -848,18 +851,21 @@ class DarkScrollbar(tk.Frame):
 
 
 class ControlsPanel(tk.Frame):
-    def __init__(self, parent, engine, on_render, **kwargs):
+    def __init__(self, parent, engine, on_render, on_preview=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.configure(bg=th.BG_DARK, width=280)
         self.pack_propagate(False)
         self._engine = engine
         self._on_render = on_render
+        self._on_preview = on_preview
         self._color_rows: dict[str, ColorRow] = {}
         self._adj_sliders: dict[str, AdjustmentSlider] = {}
         self._style_param_widgets: dict[str, tk.Frame] = {}
         self._display_color_widgets: dict[str, StyleParamColor] = {}
         self._image_path: str | None = None
         self._render_after_id: int | None = None
+        self._anim_keyframes: list[Keyframe] = []
+        self._anim_exporting: bool = False
         self._build()
 
     def _build(self):
@@ -956,6 +962,10 @@ class ControlsPanel(tk.Frame):
         dc = display_sec.container
 
         self._build_display_controls(dc)
+
+        anim_sec = Section(parent, "Animacion", expanded=False)
+        anim_sec.pack(fill=tk.X, pady=(0, 4))
+        self._build_animation_controls(anim_sec.container)
 
         status_bar = tk.Frame(self, bg=th.BG_DARK, bd=0)
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -1067,6 +1077,231 @@ class ControlsPanel(tk.Frame):
                                           initial=dc["font_name"], width=25,
                                           on_select=_make_cb("font_name"))
         self._font_choice.pack(fill=tk.X, padx=8, pady=2)
+
+    def _build_animation_controls(self, parent):
+        dur_frame = tk.Frame(parent, bg=th.BG_DARK)
+        dur_frame.pack(fill=tk.X, padx=8, pady=2)
+        tk.Label(dur_frame, text="Duracion (s):", font=(th.FONT_FAMILY, 9),
+                 bg=th.BG_DARK, fg=th.FG).pack(side=tk.LEFT)
+        self._anim_dur_var = tk.DoubleVar(value=5.0)
+        dur_spin = tk.Spinbox(dur_frame, from_=0.5, to=60.0, increment=0.5,
+                              textvariable=self._anim_dur_var, width=5,
+                              font=(th.FONT_FAMILY, 9),
+                              bg=th.BG_INPUT, fg=th.FG, buttonbackground=th.BG_MEDIUM,
+                              highlightthickness=1, highlightbackground=th.BORDER, bd=0)
+        dur_spin.pack(side=tk.LEFT, padx=(4, 0))
+        tk.Label(dur_frame, text="FPS:", font=(th.FONT_FAMILY, 9),
+                 bg=th.BG_DARK, fg=th.FG).pack(side=tk.LEFT, padx=(8, 0))
+        self._anim_fps_var = tk.IntVar(value=24)
+        fps_spin = tk.Spinbox(dur_frame, from_=1, to=60, textvariable=self._anim_fps_var, width=4,
+                              font=(th.FONT_FAMILY, 9),
+                              bg=th.BG_INPUT, fg=th.FG, buttonbackground=th.BG_MEDIUM,
+                              highlightthickness=1, highlightbackground=th.BORDER, bd=0)
+        fps_spin.pack(side=tk.LEFT, padx=(4, 0))
+
+        sep1 = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep1.pack(fill=tk.X, padx=8, pady=3)
+
+        kf_frame = tk.Frame(parent, bg=th.BG_DARK)
+        kf_frame.pack(fill=tk.X, padx=8, pady=2)
+        self._anim_start_btn = ModernButton(kf_frame, text="1. Capturar Inicio",
+                                             command=self._anim_set_start, padx=6, pady=2)
+        self._anim_start_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+        self._anim_end_btn = ModernButton(kf_frame, text="2. Capturar Fin",
+                                           command=self._anim_set_end, padx=6, pady=2)
+        self._anim_end_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+
+        self._anim_status_frame = tk.Frame(parent, bg=th.BG_DARK)
+        self._anim_status_frame.pack(fill=tk.X, padx=8, pady=1)
+        self._anim_start_lbl = tk.Label(self._anim_status_frame, text="Inicio: --",
+                                         font=(th.FONT_FAMILY, 9),
+                                         bg=th.BG_DARK, fg=th.FG_DIM)
+        self._anim_start_lbl.pack(side=tk.LEFT, padx=(0, 16))
+        self._anim_end_lbl = tk.Label(self._anim_status_frame, text="Fin: --",
+                                       font=(th.FONT_FAMILY, 9),
+                                       bg=th.BG_DARK, fg=th.FG_DIM)
+        self._anim_end_lbl.pack(side=tk.LEFT)
+
+        sep2 = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep2.pack(fill=tk.X, padx=8, pady=3)
+
+        prev_frame = tk.Frame(parent, bg=th.BG_DARK)
+        prev_frame.pack(fill=tk.X, padx=8, pady=2)
+        tk.Label(prev_frame, text="Prever en t:", font=(th.FONT_FAMILY, 9),
+                 bg=th.BG_DARK, fg=th.FG).pack(side=tk.LEFT)
+        self._anim_prev_time_var = tk.DoubleVar(value=0.0)
+        tk.Spinbox(prev_frame, from_=0.0, to=60.0, increment=0.5,
+                   textvariable=self._anim_prev_time_var, width=5,
+                   font=(th.FONT_FAMILY, 9),
+                   bg=th.BG_INPUT, fg=th.FG, buttonbackground=th.BG_MEDIUM,
+                   highlightthickness=1, highlightbackground=th.BORDER, bd=0
+                   ).pack(side=tk.LEFT, padx=(4, 0))
+        ModernButton(prev_frame, text="Previsualizar", command=self._anim_preview_frame,
+                     padx=6, pady=2).pack(side=tk.LEFT, padx=(6, 0))
+        ModernButton(prev_frame, text="Limpiar", command=self._anim_reset,
+                     padx=6, pady=2).pack(side=tk.LEFT, padx=(6, 0))
+
+        sep3 = tk.Frame(parent, height=1, bg=th.BORDER)
+        sep3.pack(fill=tk.X, padx=8, pady=3)
+
+        export_row = tk.Frame(parent, bg=th.BG_DARK)
+        export_row.pack(fill=tk.X, padx=8, pady=2)
+        ModernButton(export_row, text="Exportar Video", command=self._anim_export_video,
+                     padx=6, pady=2).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+        ModernButton(export_row, text="Exportar GIF", command=self._anim_export_gif,
+                     padx=6, pady=2).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+
+        self._anim_start_kf: Keyframe | None = None
+        self._anim_end_kf: Keyframe | None = None
+
+    def _anim_capture_snapshot(self) -> tuple[dict, dict]:
+        style = self._engine.style_manager.get(self._engine.current_style_id)
+        params = style.get_style_params()
+        colors = style.get_editable_colors()
+        snap_params = {k: v.get("value") if isinstance(v, dict) and "value" in v else v for k, v in params.items()}
+        return snap_params, dict(colors)
+
+    def _anim_set_start(self):
+        if not self._image_path:
+            messagebox.showwarning("Sin imagen", "Carga una imagen primero.")
+            return
+        p, c = self._anim_capture_snapshot()
+        self._anim_start_kf = Keyframe(time=0.0, params=p, colors=c)
+        self._anim_start_lbl.config(text=f"Inicio: {len(p)} params capturados", fg=th.FG_BRIGHT)
+        self._update_status("Inicio capturado. Ahora ajusta los parametros y captura el Fin.")
+
+    def _anim_set_end(self):
+        if not self._image_path:
+            messagebox.showwarning("Sin imagen", "Carga una imagen primero.")
+            return
+        dur = self._anim_dur_var.get()
+        p, c = self._anim_capture_snapshot()
+        self._anim_end_kf = Keyframe(time=dur, params=p, colors=c)
+        self._anim_end_lbl.config(text=f"Fin: {len(p)} params capturados", fg=th.FG_BRIGHT)
+        self._update_status("Fin capturado. Usa 'Previsualizar' o exporta.")
+
+    def _anim_get_clip(self) -> AnimationClip | None:
+        if not self._anim_start_kf or not self._anim_end_kf:
+            messagebox.showwarning("Faltan keyframes", "Captura Inicio y Fin primero.")
+            return None
+        dur = self._anim_dur_var.get()
+        fps = self._anim_fps_var.get()
+        return AnimationClip(
+            style_id=self._engine.current_style_id,
+            duration=dur, fps=fps,
+            keyframes=[self._anim_start_kf, self._anim_end_kf],
+        )
+
+    def _anim_preview_frame(self):
+        clip = self._anim_get_clip()
+        if not clip:
+            return
+        if self._render_after_id is not None:
+            self.after_cancel(self._render_after_id)
+            self._render_after_id = None
+        time = self._anim_prev_time_var.get()
+        if time > clip.duration:
+            time = clip.duration
+        from animations.animation_engine import interpolate_params_at, interpolate_colors_at
+        style = self._engine.style_manager.get(clip.style_id)
+        old_params = style.get_style_params()
+        old_colors = style.get_editable_colors()
+        root = self.winfo_toplevel()
+        root.config(cursor="watch")
+        root.update()
+        try:
+            params = interpolate_params_at(clip.keyframes, time)
+            colors = interpolate_colors_at(clip.keyframes, time)
+            for pname, pval in params.items():
+                style.update_style_param(pname, pval)
+            for ckey, cval in colors.items():
+                style.update_color(ckey, cval)
+            frame = self._engine.render(self._image_path)
+            self.set_result(frame)
+            if self._on_preview:
+                self._on_preview(frame)
+            root.update()
+            self._update_status(f"Previsualizacion en t={time:.1f}s")
+        finally:
+            for pname, pdef in old_params.items():
+                style.update_style_param(pname, pdef.get("value"))
+            for ckey, cval in old_colors.items():
+                style.update_color(ckey, cval)
+            root.config(cursor="")
+
+    def _anim_reset(self):
+        self._anim_start_kf = None
+        self._anim_end_kf = None
+        self._anim_start_lbl.config(text="Inicio: --", fg=th.FG_DIM)
+        self._anim_end_lbl.config(text="Fin: --", fg=th.FG_DIM)
+        self._update_status("Animacion reiniciada")
+
+    def _anim_export_video(self):
+        self._anim_export_media(video=True)
+
+    def _anim_export_gif(self):
+        self._anim_export_media(video=False)
+
+    def _anim_export_media(self, video: bool = True):
+        clip = self._anim_get_clip()
+        if not clip:
+            return
+
+        ext = ".mp4" if video else ".gif"
+        title = "Exportar video" if video else "Exportar GIF"
+        ftypes = [(f"Video MP4 (*{ext})", f"*{ext}") if video else (f"GIF (*{ext})", f"*{ext}")]
+
+        path = filedialog.asksaveasfilename(
+            title=title, defaultextension=ext, filetypes=ftypes
+        )
+        if not path:
+            return
+
+        def _on_progress(current, total, current_time, total_duration):
+            self._anim_progress_var.set(int(current / total * 100))
+            self._anim_progress_label.config(text=f"Frame {current}/{total}  t={current_time:.1f}s/{total_duration:.1f}s")
+            self.update()
+
+        progress_win = tk.Toplevel(self)
+        progress_win.title("Exportando...")
+        progress_win.configure(bg=th.BG_DARK)
+        progress_win.resizable(False, False)
+        progress_win.transient(self)
+        pw, ph = 350, 100
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        progress_win.geometry(f"{pw}x{ph}+{(sw-pw)//2}+{(sh-ph)//2}")
+        tk.Label(progress_win, text="Renderizando frames...", font=(th.FONT_FAMILY, 10),
+                 bg=th.BG_DARK, fg=th.FG).pack(pady=(12, 4))
+        self._anim_progress_var = tk.IntVar(value=0)
+        pb = ttk.Progressbar(progress_win, variable=self._anim_progress_var, length=300)
+        pb.pack(pady=4)
+        self._anim_progress_label = tk.Label(progress_win, text="Iniciando...",
+                                              font=(th.FONT_FAMILY, 9),
+                                              bg=th.BG_DARK, fg=th.FG_DIM)
+        self._anim_progress_label.pack()
+        progress_win.update()
+
+        self._anim_exporting = True
+        root = self.winfo_toplevel()
+        root.config(cursor="watch")
+        try:
+            frames = render_animation(self._engine, clip, self._image_path, progress_callback=_on_progress)
+            self._anim_progress_label.config(text="Escribiendo archivo...")
+            self.update()
+            if video:
+                export_video(frames, path, clip.fps)
+            else:
+                export_gif(frames, path, clip.fps)
+            progress_win.destroy()
+            self._update_status(f"{'Video' if video else 'GIF'} guardado: {os.path.basename(path)}")
+        except Exception as e:
+            progress_win.destroy()
+            messagebox.showerror("Error", f"Error al exportar:\n{e}")
+        finally:
+            root.config(cursor="")
+            self._anim_exporting = False
+            self._schedule_render()
 
     def _build_adjustments(self, parent):
         sliders = [

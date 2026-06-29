@@ -58,7 +58,8 @@ class App(tk.Tk):
         self._canvas = ImageCanvas(body)
         self._canvas.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 
-        self._controls = ControlsPanel(body, self._engine, on_render=self._do_render)
+        self._controls = ControlsPanel(body, self._engine, on_render=self._do_render,
+                                        on_preview=self._do_preview)
         self._controls.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 0))
 
     def _bind_shortcuts(self):
@@ -84,6 +85,9 @@ class App(tk.Tk):
         except Exception as e:
             self.config(cursor="")
             messagebox.showerror("Error", f"Ocurrio un error:\n{e}")
+
+    def _do_preview(self, image):
+        self._canvas.display(image, self._engine.original_image)
 
     def _on_minimize(self):
         self.iconify()
